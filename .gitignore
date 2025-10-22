@@ -2,11 +2,11 @@
 venv*
 .idea
 html/
-.html
+*.html
 log/
-.log
+*.log
 data/
-.csv
+*.csv
 __pycache__/
 *.py[codz]
 *$py.class
