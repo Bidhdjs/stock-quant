@@ -1,11 +1,11 @@
 # Byte-compiled / optimized / DLL files
 venv*
 .idea
-html/
+html/*
 *.html
-log/
+log/*
 *.log
-data/
+data/*
 *.csv
 __pycache__/
 *.py[codz]
