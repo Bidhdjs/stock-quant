@@ -235,7 +235,7 @@ if __name__ == "__main__":
     # )
 
     end_date = datetime.datetime.now().strftime("%Y-%m-%d")
-    start_time = (datetime.datetime.now() - datetime.timedelta(days=365*5)).strftime("%Y-%m-%d")
+    start_time = (datetime.datetime.now() - datetime.timedelta(days=365*4)).strftime("%Y-%m-%d")
 
     stock_list = get_user_selected_stock_list()
     for stock_code in stock_list:
