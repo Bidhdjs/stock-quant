@@ -53,8 +53,9 @@ if __name__ == "__main__":
 ```
 ### 4. 策略参数调整
 ```
-可以在core/strategy/indicator/indicator_strategy_common.py中调整策略信号参数（只标记交易信号，不交易）
-可以在core/strategy/trader/trader_strategy_common.py中调整策略买卖参数（根据交易信号执行交易）
+调整策略信号参数（只标记交易信号，不交易）：settings文件中修改交易策略相关参数
+调整策略买卖参数（根据交易信号执行交易）：settings文件中修改交易佣金相关参数
+调整初始本金：settings文件中修改交易本金参数
 ```
 
 注：目前策略只有一个，对应futu中指标广场TREND策略
