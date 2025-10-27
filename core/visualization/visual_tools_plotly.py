@@ -325,7 +325,7 @@ def create_trading_chart(df_continuous, df, valid_signals, valid_trades, holding
                         size=10,
                         line=dict(width=1, color='black')
                     ),
-                    text=['买入' for _ in range(len(strong_buy_signals))],
+                    text=['强多' for _ in range(len(strong_buy_signals))],
                     textposition='bottom center',
                     texttemplate='%{text}',
                     textfont=dict(family="SimHei, Arial", size=12, color="darkgreen", weight="bold"),
@@ -350,7 +350,7 @@ def create_trading_chart(df_continuous, df, valid_signals, valid_trades, holding
                         size=10,
                         line=dict(width=1, color='black')
                     ),
-                    text=['买入' for _ in range(len(buy_signals))],
+                    text=['多' for _ in range(len(buy_signals))],
                     textposition='bottom center',
                     texttemplate='%{text}',
                     textfont=dict(family="SimHei, Arial", size=12, color="darkgreen", weight="bold"),
@@ -375,7 +375,7 @@ def create_trading_chart(df_continuous, df, valid_signals, valid_trades, holding
                         size=10,
                         line=dict(width=1, color='black')
                     ),
-                    text=['卖出' for _ in range(len(strong_sell_signals))],
+                    text=['强空' for _ in range(len(strong_sell_signals))],
                     textposition='top center',
                     texttemplate='%{text}',
                     textfont=dict(family="SimHei, Arial", size=12, color="darkred", weight="bold"),
@@ -400,7 +400,7 @@ def create_trading_chart(df_continuous, df, valid_signals, valid_trades, holding
                         size=10,
                         line=dict(width=1, color='black')
                     ),
-                    text=['卖出' for _ in range(len(sell_signals))],
+                    text=['空' for _ in range(len(sell_signals))],
                     textposition='top center',
                     texttemplate='%{text}',
                     textfont=dict(family="SimHei, Arial", size=12, color="darkred", weight="bold"),
