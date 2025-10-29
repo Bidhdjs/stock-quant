@@ -6,6 +6,8 @@ import pandas as pd
 
 from common.logger import create_log
 from core.strategy.indicator.indicator_strategy_common import EnhancedVolumeIndicator
+import settings
+
 
 logger = create_log("trade_strategy_common")
 
@@ -68,15 +70,17 @@ class EnhancedVolumeStrategy(bt.Strategy):
     使用增强成交量指标的交易策略
     """
     params = (
-        ('print_log', True),
+        # 是否打印日志
+        ('print_log', settings.PRINT_LOG if hasattr(settings, 'PRINT_LOG') else True),
         # 交易股票最小单位（股）
-        ('min_order_size', 100),
+        ('min_order_size', settings.MIN_ORDER_SIZE if hasattr(settings, 'MIN_ORDER_SIZE') else 100),
         # 最大持仓比例 = 总持仓股票数量 * 持仓股票价格 / 总资产
-        ('max_portfolio_percent', 0.8),
+        ('max_portfolio_percent', settings.MAX_PORTFOLIO_PERCENT if hasattr(settings, 'MAX_PORTFOLIO_PERCENT') else 0.8),
         # 单笔交易百分比（买） = 单笔交易费用（ 单笔交易股票价格 * 单笔交易量） / 总资产
-        ('max_single_buy_percent', 0.2),
+        ('max_single_buy_percent', settings.MAX_SINGLE_BUY_PERCENT if hasattr(settings, 'MAX_SINGLE_BUY_PERCENT') else 0.2),
         # 单笔交易百分比（卖） = 单笔交易费用（ 单笔交易股票价格 * 单笔交易量） / 总资产
-        ('max_single_sell_percent', 0.99),
+        ('max_single_sell_percent', settings.MAX_SINGLE_SELL_PERCENT if hasattr(settings, 'MAX_SINGLE_SELL_PERCENT') else 0.3),
+
     )
 
     def __init__(self):

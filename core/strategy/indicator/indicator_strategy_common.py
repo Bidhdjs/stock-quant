@@ -128,10 +128,10 @@ class EnhancedVolumeIndicator(bt.Indicator):
         # 确保有足够的数据点
         if len(self) >= 3:
             # 检查前3天是否都是阴线 (收盘 < 开盘)
-            is_3_down = all(self.data.close[-i] < self.data.open[-i] for i in range(1, 4))
+            is_3_down = all(self.data.close[-i] < self.data.open[-i] for i in range(0, 3))
 
             # 检查前3天是否都是阳线 (收盘 > 开盘)
-            is_3_up = all(self.data.close[-i] > self.data.open[-i] for i in range(1, 4))
+            is_3_up = all(self.data.close[-i] > self.data.open[-i] for i in range(0, 3))
 
 
         # 计算均线相关买入/卖出计数

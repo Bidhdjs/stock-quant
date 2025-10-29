@@ -4,24 +4,26 @@ import pandas as pd
 from common.logger import create_log
 from core.strategy.trading.trading_strategy_common import EnhancedVolumeStrategy
 from core.visualization.visual_tools_plotly import plotly_draw
-from settings import stock_data_root
+from pathlib import Path
+import settings
 
 logger = create_log('quant_manage')
 
 class HKCommission(bt.CommInfoBase):
     """香港市场佣金模型"""
+
     params = (
-        ('commission', 0.0003),  # 佣金率0.03%
-        ('mincommission', 3),  # 最低佣金
-        ('currency', 'HKD'),
+        ('commission', settings.COMMISSION if hasattr(settings, 'COMMISSION') else 0.0003),  # 佣金率0.03%
+        ('mincommission', settings.MIN_COMMISSION if hasattr(settings, 'MIN_COMMISSION') else 3),  # 最低佣金
+        ('currency', settings.CURRENCY if hasattr(settings, 'CURRENCY') else 'HKD'),
         ('commtype', bt.CommInfoBase.COMM_PERC),
-        ('stamp_duty', 0.0013),  # 印花税0.13%
-        ('transaction_levy', 0.000027),  # 交易征费0.0027%
-        ('transaction_fee', 0.00005),  # 交易费0.005%
-        ('trading_system_fee', 0.5),  # 交易系统使用费0.5港币/笔
-        ('settlement_fee', 0.00002),  # 股份交收费0.002%
-        ('min_settlement_fee', 2),  # 最低交收费2港币
-        ('max_settlement_fee', 100),  # 最高交收费100港币
+        ('stamp_duty', settings.STAMP_DUTY if hasattr(settings, 'STAMP_DUTY') else 0.0013),  # 印花税0.13%
+        ('transaction_levy', settings.TRANSACTION_LEVY if hasattr(settings, 'TRANSACTION_LEVY') else 0.000027),  # 交易征费0.0027%
+        ('transaction_fee', settings.TRANSACTION_FEE if hasattr(settings, 'TRANSACTION_FEE') else 0.00005),  # 交易费0.005%
+        ('trading_system_fee', settings.TRADING_SYSTEM_FEE if hasattr(settings, 'TRADING_SYSTEM_FEE') else 15),  # 交易系统使用费0.5港币/笔
+        ('settlement_fee', settings.SETTLEMENT_FEE if hasattr(settings, 'SETTLEMENT_FEE') else 0.00002),  # 股份交收费0.002%
+        ('min_settlement_fee', settings.MIN_SETTLEMENT_FEE if hasattr(settings, 'MIN_SETTLEMENT_FEE') else 2),  # 最低交收费2港币
+        ('max_settlement_fee', settings.MAX_SETTLEMENT_FEE if hasattr(settings, 'MAX_SETTLEMENT_FEE') else 100),  # 最高交收费100港币
     )
 
     def _getcommission(self, size, price, pseudoexec):
@@ -38,7 +40,17 @@ class HKCommission(bt.CommInfoBase):
         return commission + stamp_duty + transaction_levy + transaction_fee + self.p.trading_system_fee + settlement_fee
 
 
-def run_backtest_enhanced_volume_strategy(csv_path, init_cash):
+def run_backtest_enhanced_volume_strategy_multi(folder_path, init_cash=settings.INIT_CASH if hasattr(settings, 'INIT_CASH') else 5000000):
+    """
+    批量运行增强成交量策略回测
+    :param folder_path: 包含CSV文件的文件夹路径
+    :param init_cash: 初始资金
+    """
+    folder = Path(folder_path)
+    for file in folder.glob("*.csv"):
+        run_backtest_enhanced_volume_strategy(file, init_cash)
+
+def run_backtest_enhanced_volume_strategy(csv_path, init_cash=settings.INIT_CASH if hasattr(settings, 'INIT_CASH') else 5000000):
     logger.info("=" * 60)
     logger.info("【程序启动】VolumeIndicatorStrategy回测程序")
     logger.info(f"【目标文件】{csv_path}")
@@ -157,6 +169,21 @@ def run_backtest_enhanced_volume_strategy(csv_path, init_cash):
     logger.info("【回测结束】\n")
 
 
+
+
+def get_file_names_pathlib(folder_path):
+    """
+    使用pathlib遍历指定文件夹下的所有文件，返回文件名列表
+    """
+    folder = Path(folder_path)
+    # 获取所有文件（不包括目录）
+    files = [f.name for f in folder.rglob('*') if f.is_file()]
+    # 如果需要完整路径，使用以下代码
+    # files = [str(f) for f in folder.rglob('*') if f.is_file()]
+
+    return files
+
+
 def get_data_form_csv(csv_path):
     df = pd.read_csv(
         csv_path,
@@ -181,5 +208,8 @@ def get_data_form_csv(csv_path):
 #     # 设置CSV路径
 #     kline_csv_path = stock_data_root / "futu/HK.00700_腾讯控股_20210104_20250127.csv"
 #     init_cash = 5000000
-#     # 启动回测
+#     # 启动回测-单个股票
 #     run_backtest_enhanced_volume_strategy(kline_csv_path,init_cash)
+#     # 启动回测-批量股票
+#     run_backtest_enhanced_volume_strategy_multi(folder_path=stock_data_root / "futu", init_cash=5000000)
+#
