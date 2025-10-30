@@ -151,11 +151,10 @@ class EnhancedVolumeStrategy(bt.Strategy):
                 buy_size = buy_size // self.min_order_size * self.min_order_size
                 logger.info(
                     f"资金管理: 可用资金={available_cash:.2f}, 总资产={total_asset_value:.2f}, 买入股数={buy_size}，买入价格={price:.2f}，买入后持仓={self.position.size+buy_size}")
-                # 计算并打印手续费明细
-                commission_details = self.calculate_commission_details(buy_size, price)
-                if commission_details:
-                    logger.info(
-                        f"预计手续费: 佣金={commission_details['commission']:.2f}, 印花税={commission_details['stamp_duty']:.2f}, 交易征费={commission_details['transaction_levy']:.2f}, 预计手续费: 交易费={commission_details['transaction_fee']:.2f}, 交收费={commission_details['settlement_fee']:.2f}, 交易系统使用费={commission_details['trading_system_fee']:.2f}, 总计={commission_details['total_commission']:.2f} 港元")
+                # 计算并打印手续费
+                trade_commission = self.calculate_commission(buy_size, price)
+                if trade_commission:
+                    logger.info(f"交易手续费: {trade_commission['total_commission']:.2f}")
                 self.order = self.buy(size=buy_size, price=price)
                 self.trade_record_manager.add_signal_record(self.data.datetime.date(0), 'B', 'strong_buy', buy_size)
             else:
@@ -180,10 +179,10 @@ class EnhancedVolumeStrategy(bt.Strategy):
             sell_size = min(remaining_sell_size, max_single_sell_size)
             if sell_size >= self.min_order_size:
                 logger.info(f"卖出持仓: 当前持仓={self.position.size}, 实际卖出={sell_size}，卖出价格={price:.2f}，卖出后持仓={current_position_size - sell_size}")
-                commission_details = self.calculate_commission_details(sell_size, price)
-                if commission_details:
-                    logger.info(
-                        f"预计手续费: 佣金={commission_details['commission']:.2f}, 印花税={commission_details['stamp_duty']:.2f}, 交易征费={commission_details['transaction_levy']:.2f}, 预计手续费: 交易费={commission_details['transaction_fee']:.2f}, 交收费={commission_details['settlement_fee']:.2f}, 交易系统使用费={commission_details['trading_system_fee']:.2f}, 总计={commission_details['total_commission']:.2f} 港元")
+                # 计算并打印手续费
+                trade_commission = self.calculate_commission(sell_size, price)
+                if trade_commission:
+                    logger.info(f"交易手续费: {trade_commission['total_commission']:.2f}")
                 self.order = self.sell(size=sell_size, price=price)
                 self.trade_record_manager.add_signal_record(self.data.datetime.date(0), 'S', 'strong_sell', sell_size)
             else:
@@ -221,31 +220,13 @@ class EnhancedVolumeStrategy(bt.Strategy):
 
         logger.info(f'交易利润: 毛利润={trade.pnl:.2f}, 净利润={trade.pnlcomm:.2f}')
 
-    def calculate_commission_details(self, size, price):
-        """计算手续费明细"""
+    def calculate_commission(self, size, price):
+        """使用原生方法计算总手续费"""
         # 获取当前使用的佣金模型
         comminfo = self.broker.getcommissioninfo(self.data)
-        if hasattr(comminfo, 'p'):
-            value = abs(size) * price
+        # 直接调用原生方法获取总手续费
+        total_commission = comminfo._getcommission(size, price, pseudoexec=False)
 
-            # 计算各项费用
-            commission = max(value * comminfo.p.commission, comminfo.p.mincommission)
-            stamp_duty = value * comminfo.p.stamp_duty
-            transaction_levy = value * comminfo.p.transaction_levy
-            transaction_fee = value * comminfo.p.transaction_fee
-            # 交收费（有上下限）
-            settlement_fee = value * comminfo.p.settlement_fee
-            settlement_fee = max(min(settlement_fee, comminfo.p.max_settlement_fee), comminfo.p.min_settlement_fee)
-            trading_system_fee = comminfo.p.trading_system_fee
-            total_commission = commission + stamp_duty + transaction_levy + transaction_fee + trading_system_fee + settlement_fee
-
-            return {
-                'commission': commission,
-                'stamp_duty': stamp_duty,
-                'transaction_levy': transaction_levy,
-                'transaction_fee': transaction_fee,
-                'settlement_fee': settlement_fee,
-                'trading_system_fee': trading_system_fee,
-                'total_commission': total_commission
-            }
-        return None
+        return {
+            'total_commission': total_commission
+        }
