@@ -336,7 +336,7 @@ def create_trading_chart(df_continuous, df, valid_signals, valid_trades, holding
             )
 
         # 买入信号（浅绿色，圆形）
-        buy_signals = valid_signals[valid_signals['signal_type'] == 'buy']
+        buy_signals = valid_signals[valid_signals['signal_type'] == 'normal_buy']
         if not buy_signals.empty:
             fig.add_trace(
                 go.Scatter(
@@ -386,7 +386,7 @@ def create_trading_chart(df_continuous, df, valid_signals, valid_trades, holding
             )
 
         # 卖出信号（浅红色，圆形）
-        sell_signals = valid_signals[valid_signals['signal_type'] == 'sell']
+        sell_signals = valid_signals[valid_signals['signal_type'] == 'normal_sell']
         if not sell_signals.empty:
             fig.add_trace(
                 go.Scatter(
