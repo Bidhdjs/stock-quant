@@ -17,13 +17,15 @@ class HKCommission(bt.CommInfoBase):
         ('mincommission', settings.MIN_COMMISSION if hasattr(settings, 'MIN_COMMISSION') else 3),  # 最低佣金
         ('currency', settings.CURRENCY if hasattr(settings, 'CURRENCY') else 'HKD'),
         ('commtype', bt.CommInfoBase.COMM_PERC),
-        ('stamp_duty', settings.STAMP_DUTY if hasattr(settings, 'STAMP_DUTY') else 0.0013),  # 印花税0.13%
-        ('transaction_levy', settings.TRANSACTION_LEVY if hasattr(settings, 'TRANSACTION_LEVY') else 0.000027),  # 交易征费0.0027%
-        ('transaction_fee', settings.TRANSACTION_FEE if hasattr(settings, 'TRANSACTION_FEE') else 0.00005),  # 交易费0.005%
-        ('trading_system_fee', settings.TRADING_SYSTEM_FEE if hasattr(settings, 'TRADING_SYSTEM_FEE') else 15),  # 交易系统使用费0.5港币/笔
+        ('stamp_duty', settings.STAMP_DUTY if hasattr(settings, 'STAMP_DUTY') else 0.001),  # 印花税0.1%
+        ('transaction_levy', settings.TRANSACTION_LEVY if hasattr(settings, 'TRANSACTION_LEVY') else 0.000042),  # 交易征费0.0042%
+        ('transaction_fee', settings.TRANSACTION_FEE if hasattr(settings, 'TRANSACTION_FEE') else 0.0000565),  # 交易费0.00565%
+        ('trading_system_fee', settings.TRADING_SYSTEM_FEE if hasattr(settings, 'TRADING_SYSTEM_FEE') else 15),  # 交易系统使用费15港币/笔
         ('settlement_fee', settings.SETTLEMENT_FEE if hasattr(settings, 'SETTLEMENT_FEE') else 0.00002),  # 股份交收费0.002%
         ('min_settlement_fee', settings.MIN_SETTLEMENT_FEE if hasattr(settings, 'MIN_SETTLEMENT_FEE') else 2),  # 最低交收费2港币
         ('max_settlement_fee', settings.MAX_SETTLEMENT_FEE if hasattr(settings, 'MAX_SETTLEMENT_FEE') else 100),  # 最高交收费100港币
+        ('slippage', settings.SLIPPAGE if hasattr(settings, 'SLIPPAGE') else 0.3),    #滑点0.3港币
+    # 最高交收费100港币
     )
 
     def _getcommission(self, size, price, pseudoexec):
@@ -62,8 +64,9 @@ def run_backtest_enhanced_volume_strategy(csv_path, init_cash=settings.INIT_CASH
 
     # 配置交易参数
     cerebro.broker.set_cash(init_cash)
-    cerebro.broker.addcommissioninfo(HKCommission())
-    cerebro.broker.set_slippage_fixed(0.3)
+    commission = HKCommission()
+    cerebro.broker.addcommissioninfo(commission)
+    cerebro.broker.set_slippage_fixed(commission.p.slippage)
     cerebro.broker.set_coc(True)
 
     logger.info(f"【资金配置】初始资金：{init_cash:,.2f} 港元 | 佣金率：0.03% | 滑点：0.3 港元")
