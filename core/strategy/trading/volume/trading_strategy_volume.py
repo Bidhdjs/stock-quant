@@ -1,51 +1,16 @@
-import backtrader as bt
 import numpy as np
-
 from common.logger import create_log
 from core.strategy.indicator.indicator_strategy_common import EnhancedVolumeIndicator
-import settings
-from core.strategy.trading.common import AssetRecordManager, TradeRecordManager
+from core.strategy.trading.common import StrategyBase
 
-logger = create_log("trade_strategy_common")
+logger = create_log("trade_strategy_volume")
 
 
-class EnhancedVolumeStrategy(bt.Strategy):
-    """
-    使用增强成交量指标的交易策略
-    """
-    params = (
-        # 是否打印日志
-        ('print_log', settings.PRINT_LOG if hasattr(settings, 'PRINT_LOG') else True),
-        # 交易股票最小单位（股）
-        ('min_order_size', settings.MIN_ORDER_SIZE if hasattr(settings, 'MIN_ORDER_SIZE') else 100),
-        # 最大持仓比例 = 总持仓股票数量 * 持仓股票价格 / 总资产
-        ('max_portfolio_percent',
-         settings.MAX_PORTFOLIO_PERCENT if hasattr(settings, 'MAX_PORTFOLIO_PERCENT') else 0.8),
-        # 单笔交易百分比（买） = 单笔交易费用（ 单笔交易股票价格 * 单笔交易量） / 总资产
-        ('max_single_buy_percent',
-         settings.MAX_SINGLE_BUY_PERCENT if hasattr(settings, 'MAX_SINGLE_BUY_PERCENT') else 0.2),
-        # 单笔交易百分比（卖） = 单笔交易费用（ 单笔交易股票价格 * 单笔交易量） / 总资产
-        ('max_single_sell_percent',
-         settings.MAX_SINGLE_SELL_PERCENT if hasattr(settings, 'MAX_SINGLE_SELL_PERCENT') else 0.3),
-
-    )
-
+class EnhancedVolumeStrategy(StrategyBase):
+    """增强量化指标"""
     def __init__(self):
-        self.asset_record_manager = AssetRecordManager()
-        self.trade_record_manager = TradeRecordManager()
-        # 初始化指标
-        self.min_order_size = self.p.min_order_size
-        self.max_portfolio_percent = self.p.max_portfolio_percent
-        self.max_single_buy_percent = self.p.max_single_buy_percent
-        self.max_single_sell_percent = self.p.max_single_sell_percent
-        self.indicator = EnhancedVolumeIndicator()
-        self.order = None
-
-        # 添加信号计数器
-        self.buy_signals_count = 0
-        self.sell_signals_count = 0
-        self.executed_buys_count = 0
-        self.executed_sells_count = 0
+        super().__init__()
+        self.set_indicator(EnhancedVolumeIndicator())   # 设置交易策略使用的信号指标，卖点/买点指标等
 
     def next(self):
         # 检查是否有未完成的订单
@@ -140,43 +105,3 @@ class EnhancedVolumeStrategy(bt.Strategy):
         else:
             logger.info("【卖出挂单失败，当前无持仓，不执行卖出操作】")
 
-    def notify_order(self, order):
-        """订单状态通知，每笔订单状态改变都会触发"""
-        if order.status in [order.Submitted, order.Accepted]:
-            return
-
-        if order.status in [order.Completed]:
-            if order.isbuy():
-                logger.info(
-                    f'【买入挂单成交】: 实际执行价格={order.executed.price:.2f}（含滑点）, 数量={order.executed.size}')
-                self.executed_buys_count += 1
-            elif order.issell():
-                logger.info(
-                    f'【卖出挂单成交】: 实际执行价格={order.executed.price:.2f}（含滑点）, 数量={order.executed.size}')
-                self.executed_sells_count += 1
-            # 计算并记录实际佣金
-            actual_commission = self.calculate_commission(order.executed.size, order.executed.price)
-            logger.info(f"【实际交易手续费】: {actual_commission['total_commission']:.8f}")
-
-        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            logger.info('订单 取消/保证金不足/拒绝')
-
-        self.order = None
-
-    def notify_trade(self, trade):
-        """交易状态通知，平仓完成才会触发，部分平仓不会触发"""
-        if not trade.isclosed:
-            return
-
-        logger.info(f'【已清仓，交易利润】: 毛利润={trade.pnl:.2f}, 净利润={trade.pnlcomm:.2f}')
-
-    def calculate_commission(self, size, price):
-        """使用原生方法计算总手续费"""
-        # 获取当前使用的佣金模型
-        comminfo = self.broker.getcommissioninfo(self.data)
-        # 直接调用原生方法获取总手续费
-        total_commission = comminfo._getcommission(size, price, pseudoexec=False)
-
-        return {
-            'total_commission': total_commission
-        }

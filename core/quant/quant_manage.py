@@ -3,7 +3,6 @@ import pandas as pd
 
 from common.logger import create_log
 from core.strategy.trading.trading_commition import CommissionFactory
-from core.strategy.trading.trading_strategy_common import EnhancedVolumeStrategy
 from core.visualization.visual_tools_plotly import plotly_draw
 from pathlib import Path
 import settings
@@ -11,17 +10,18 @@ import settings
 logger = create_log('quant_manage')
 
 
-def run_backtest_enhanced_volume_strategy_multi(folder_path, init_cash=settings.INIT_CASH if hasattr(settings, 'INIT_CASH') else 5000000):
+def run_backtest_enhanced_volume_strategy_multi(kline_csv_folder_path, trading_strategy: bt.Strategy, init_cash=settings.INIT_CASH):
     """
     批量运行增强成交量策略回测
-    :param folder_path: 包含CSV文件的文件夹路径
+    :param kline_csv_folder_path: 包含CSV文件的文件夹路径
+    :param trading_strategy: 交易策略类
     :param init_cash: 初始资金
     """
-    folder = Path(folder_path)
-    for file in folder.glob("*.csv"):
-        run_backtest_enhanced_volume_strategy(file, init_cash)
+    folder = Path(kline_csv_folder_path)
+    for kline_csv_path in folder.glob("*.csv"):
+        run_backtest_enhanced_volume_strategy(kline_csv_path, trading_strategy,init_cash)
 
-def run_backtest_enhanced_volume_strategy(csv_path, init_cash=settings.INIT_CASH if hasattr(settings, 'INIT_CASH') else 5000000):
+def run_backtest_enhanced_volume_strategy(csv_path, trading_strategy: bt.Strategy, init_cash=settings.INIT_CASH):
     logger.info("=" * 60)
     logger.info("【程序启动】VolumeIndicatorStrategy回测程序")
     logger.info(f"【目标文件】{csv_path}")
@@ -55,7 +55,7 @@ def run_backtest_enhanced_volume_strategy(csv_path, init_cash=settings.INIT_CASH
     logger.info("=" * 60)
 
     # 添加策略和分析器
-    cerebro.addstrategy(EnhancedVolumeStrategy)
+    cerebro.addstrategy(trading_strategy)
     cerebro.addanalyzer(bt.analyzers.TimeReturn, _name="total_return", timeframe=bt.TimeFrame.NoTimeFrame)
     cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="trade_analyzer")
