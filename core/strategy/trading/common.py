@@ -54,30 +54,6 @@ class TradeRecord:
         self.status = status
 
 
-class AssetRecordManager:
-    def __init__(self):
-        self.asset_records = []
-
-    def add_asset_record(self, date, total_assets):
-        self.asset_records.append(AssetRecord(date, total_assets))
-
-    def transform_to_dataframe(self):
-        return pd.DataFrame([record.__dict__ for record in self.asset_records])
-
-
-class AssetRecord:
-    def __init__(self, date, total_assets):
-        if type(date) is datetime.date:
-            # 将datetime.date转换为pandas Timestamp
-            self.date = pd.Timestamp(date)
-        elif type(date) is str:
-            # 将字符串转换为pandas Timestamp
-            self.date = pd.Timestamp(date)
-        else:
-            raise ValueError('date must be datetime.date or str')
-        self.total_assets = total_assets
-
-
 class StrategyBase(bt.Strategy):
     """
     交易策略基类，子类可覆盖trading_strategy_buy和trading_strategy_sell方法实现自定义交易策略，params参数为交易策略参数，
@@ -99,7 +75,6 @@ class StrategyBase(bt.Strategy):
     )
 
     def __init__(self):
-        self.asset_record_manager = AssetRecordManager()
         self.trade_record_manager = TradeRecordManager()
         # 初始化指标
         self.min_order_size = self.p.min_order_size
@@ -168,7 +143,6 @@ class StrategyBase(bt.Strategy):
                     status=order.status
                 )
 
-            self.asset_record_manager.add_asset_record(date=order_date, total_assets=self.broker.getvalue())
             logger.info(f"【实际交易手续费】: {actual_commission['total_commission']:.2f}")
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             logger.info('订单 取消/保证金不足/拒绝')

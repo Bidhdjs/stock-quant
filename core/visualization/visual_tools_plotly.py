@@ -71,7 +71,7 @@ def filter_valid_dates(df, records):
 
 def calculate_holdings(df_continuous, valid_trades, initial_capital):
     """
-    计算持仓量变化和总资产变化
+    计算持仓量变化、总资产、平均持仓成本变化
 
     参数:
         df_continuous: 连续日期的股票数据
@@ -162,8 +162,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
     创建包含K线、信号和交易记录的图表
 
     参数:
-        df_continuous: 连续日期的股票数据
-        df: 原始股票数据
+        df: 原始股票数据处理后得到连续日期的股票数据
         valid_signals: 有效的信号记录
         valid_trades: 有效的交易记录
         holdings_data: 持仓量和总资产数据
@@ -172,19 +171,20 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
     返回:
         Plotly图表对象
     """
-    # 创建四个垂直排列的图表
+    # 创建五个垂直排列的图表
     fig = make_subplots(
-        rows=5, cols=1,
+        rows=6, cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.05,
+        vertical_spacing=0.07,
         subplot_titles=(
             'K线图与交易信号',
+            '全景K图', # 全景K线视图，用于时间范围选择，方便其他图联动
             '成交量',
             '持仓量变化',
             '总资产变化',
             '平均持仓成本'
         ),
-        row_heights=[0.4, 0.15, 0.2, 0.25, 0.2]
+        row_heights=[0.35, 0.1, 0.15, 0.15, 0.15, 0.15]
     )
 
     # 1. 添加K线图
@@ -202,19 +202,29 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
         row=1, col=1
     )
 
-    # 2. 添加成交量柱状图
+    # 2. 添加全景视图占位图（第二行）- 不显示实际数据
+    fig.add_trace(
+        go.Bar(
+            x=df.index,
+            y=df['volume'],
+            name='全景K图',
+            marker_color=['red' if close >= open else 'green' for open, close in zip(df['open'], df['close'])],
+        ),
+        row=3, col=1
+    )
+
+    # 3. 添加成交量柱状图
     fig.add_trace(
         go.Bar(
             x=df.index,
             y=df['volume'],
             name='成交量',
             marker_color=['red' if close >= open else 'green' for open, close in zip(df['open'], df['close'])],
-            opacity=0.7
         ),
-        row=2, col=1
+        row=3, col=1
     )
 
-    # 3. 添加持仓量变化曲线
+    # 4. 添加持仓量变化曲线
     fig.add_trace(
         go.Scatter(
             x=holdings_data.index,
@@ -223,10 +233,10 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
             name='持仓量',
             line=dict(color='blue', width=2)
         ),
-        row=3, col=1
+        row=4, col=1
     )
 
-    # 4. 添加总资产变化曲线和初始资金参考线
+    # 5. 添加总资产变化曲线和初始资金参考线
     fig.add_trace(
         go.Scatter(
             x=holdings_data.index,
@@ -236,7 +246,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
             line=dict(color='purple', width=2),
             connectgaps=True
         ),
-        row=4, col=1
+        row=5, col=1
     )
 
     # 添加初始资金参考线
@@ -246,10 +256,10 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
         line_color="gray",
         annotation_text=f"初始资金: {initial_capital}",
         annotation_position="bottom right",
-        row=4, col=1
+        row=5, col=1
     )
 
-    # 5. 添加平均持仓成本变化曲线
+    # 6. 添加平均持仓成本变化曲线
     fig.add_trace(
         go.Scatter(
             x=holdings_data.index,
@@ -258,7 +268,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
             name='平均持仓成本',
             line=dict(color='orange', width=2)
         ),
-        row=5, col=1
+        row=6, col=1
     )
 
     # 6. 添加信号点标记
@@ -429,7 +439,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
             xanchor='center',
             yanchor='top'  # 设置yanchor为top，确保y值从标题顶部开始计算
         ),
-        height=1500,
+        height=2000,
         width=1600,
         margin=dict(l=120, r=80, t=120, b=80),
         legend=dict(
@@ -464,6 +474,16 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
         row=1, col=1
     )
 
+    # 全景视图Y轴 - 隐藏Y轴标签和刻度
+    fig.update_yaxes(
+        title_text="全景K图",
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='LightGray',
+        tickfont=dict(family="SimHei, Arial", size=12),
+        row=3, col=1
+    )
+
     # 成交量Y轴
     fig.update_yaxes(
         title_text="成交量",
@@ -471,7 +491,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
         gridwidth=1,
         gridcolor='LightGray',
         tickfont=dict(family="SimHei, Arial", size=12),
-        row=2, col=1
+        row=3, col=1
     )
 
     # 持仓量Y轴
@@ -481,7 +501,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
         gridwidth=1,
         gridcolor='LightGray',
         tickfont=dict(family="SimHei, Arial", size=12),
-        row=3, col=1
+        row=4, col=1
     )
 
     # 总资产Y轴
@@ -491,7 +511,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
         gridwidth=1,
         gridcolor='LightGray',
         tickfont=dict(family="SimHei, Arial", size=12),
-        row=4, col=1
+        row=5, col=1
     )
 
     # 添加平均持仓成本Y轴
@@ -501,7 +521,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
         gridwidth=1,
         gridcolor='LightGray',
         tickfont=dict(family="SimHei, Arial", size=12),
-        row=5, col=1
+        row=6, col=1
     )
 
     return fig
@@ -539,8 +559,6 @@ def save_and_show_chart(fig, output_dir=None):
 
 
 def plotly_draw(kline_csv_path, strategy, initial_capital):
-    asset_record_manager = strategy.asset_record_manager
-    asset_records_df = asset_record_manager.transform_to_dataframe()
     signal_record_manager = strategy.indicator.signal_record_manager
     signals_df = signal_record_manager.transform_to_dataframe()
     trade_record_manager = strategy.trade_record_manager
@@ -556,19 +574,14 @@ def plotly_draw(kline_csv_path, strategy, initial_capital):
         signals_df = get_sample_signal_records()
     if trades_df is None:
         trades_df = get_sample_trade_records()
-    if asset_records_df is None:
-        asset_records_df = get_sample_asset_records()
     logger.debug(f"买/卖信号记录：")
     logger.debug(f"\n{signals_df}")
     logger.debug(f"交易记录：")
     logger.debug(f"\n{trades_df}")
-    logger.debug(f"资产记录：")
-    logger.debug(f"\n{asset_records_df}")
 
     # 4. 筛选有效的日期
     valid_signals = filter_valid_dates(df, signals_df)
     valid_trades = filter_valid_dates(df, trades_df)
-    valid_assets = filter_valid_dates(df, asset_records_df)
 
     # 5. 计算持仓量和资产变化
     holdings_data = calculate_holdings(df_continuous, valid_trades, initial_capital)
@@ -583,7 +596,6 @@ def plotly_draw(kline_csv_path, strategy, initial_capital):
         stock_name = parts[1]
         stock_info = f"{stock_code} {stock_name}"
 
-    # fig = create_trading_chart(df_continuous, df, valid_signals, valid_trades, holdings_data, valid_assets, initial_capital)
     fig = create_trading_chart(df_continuous, valid_signals, valid_trades, holdings_data, initial_capital)
     if stock_info:
         current_title = fig.layout.title.text
