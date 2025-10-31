@@ -111,23 +111,7 @@ def run_backtest_enhanced_volume_strategy(csv_path, init_cash=settings.INIT_CASH
     except Exception as e:
         logger.warning(f"4. 信号统计：无法计算 ({str(e)})")
 
-
-    # 可视化，暂时不用，用plotly代替可视化，plotly可视化更加强大，支持交互操作
-    # try:
-    #     logger.info("【图表生成】正在绘制回测图表...")
-    #     cerebro.plot(style="candle", volume=True, iplot=False, figsize=(16, 12), barup="red", bardown="green")
-    #     logger.info("【图表生成】图表已弹出，请查看")
-    # except Exception as e:
-    #     logger.warning(f"【图表提示】图表生成失败：{str(e)}")
-
-    # plotly数据
-    asset_record_manager = strategy.asset_record_manager
-    asset_records_df = asset_record_manager.transform_to_dataframe()
-    signal_record_manager = strategy.indicator.signal_record_manager
-    signals_df = signal_record_manager.transform_to_dataframe()
-    trade_record_manager = strategy.trade_record_manager
-    trades_df = trade_record_manager.transform_to_dataframe()
-    html_path = plotly_draw(kline_csv_path=csv_path, signal_records=signals_df, trade_records=trades_df, asset_records=asset_records_df, initial_capital=init_cash)
+    html_path = plotly_draw(csv_path, strategy, init_cash)
     logger.info(f"5. 回测可视化图表将保存至：{html_path}，对应股票数据：{csv_path}")
     logger.info("=" * 60)
     logger.info("【回测结束】\n")

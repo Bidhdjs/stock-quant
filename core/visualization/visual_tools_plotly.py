@@ -5,26 +5,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from common.logger import create_log
+from common.util_csv import load_stock_data
+from core.visualization.visual_demo import get_sample_signal_records, get_sample_trade_records, get_sample_asset_records
 from settings import stock_data_root, html_root
 logger = create_log('visual_tools_plotly')
-
-
-def load_stock_data(csv_path):
-    """
-    加载股票数据并设置日期索引
-
-    参数:
-        csv_path: 股票数据CSV文件路径
-
-    返回:
-        加载好的DataFrame
-    """
-    df = pd.read_csv(
-        csv_path,
-        parse_dates=['date'],  # 解析date列为datetime类型
-        index_col='date'  # 将date列设为索引，方便按日期查询
-    )
-    return df
 
 
 def prepare_continuous_dates(df):
@@ -45,72 +29,6 @@ def prepare_continuous_dates(df):
     # 使用reindex将原始数据填充到连续日期索引中，非交易日数据为NaN
     df_continuous = df.reindex(continuous_dates)
     return df_continuous
-
-
-def get_sample_signal_records():
-    """
-    获取示例信号记录
-
-    返回:
-        信号记录DataFrame
-    """
-    signal_records = pd.DataFrame([
-        {'date': '2024-01-15', 'signal_type': 'normal_buy', 'signal_description': '多'},  # 仅信号，未操作
-        {'date': '2024-01-17', 'signal_type': 'normal_buy', 'signal_description': '多(执行)'},  # 信号+操作
-        {'date': '2024-02-18', 'signal_type': 'strong_buy', 'signal_description': '强多'},  # 仅信号，未操作
-        {'date': '2024-02-20', 'signal_type': 'strong_buy', 'signal_description': '强多(执行)'},  # 信号+操作
-        {'date': '2024-03-18', 'signal_type': 'normal_sell', 'signal_description': '空'},  # 仅信号，未操作
-        {'date': '2024-03-20', 'signal_type': 'normal_sell', 'signal_description': '空(执行)'},  # 信号+操作
-        {'date': '2024-04-13', 'signal_type': 'strong_sell', 'signal_description': '强空'},  # 仅信号，未操作
-        {'date': '2024-04-15', 'signal_type': 'strong_sell', 'signal_description': '强空(执行)'},  # 信号+操作
-        {'date': '2024-05-06', 'signal_type': 'normal_buy', 'signal_description': '多'},  # 仅信号，未操作
-        {'date': '2024-05-08', 'signal_type': 'normal_buy', 'signal_description': '多(执行)'},  # 信号+操作
-        {'date': '2024-06-10', 'signal_type': 'strong_buy', 'signal_description': '强多'},  # 仅信号，未操作
-        {'date': '2024-06-12', 'signal_type': 'strong_buy', 'signal_description': '强多(执行)'},  # 信号+操作
-        {'date': '2024-07-28', 'signal_type': 'normal_sell', 'signal_description': '空'},  # 仅信号，未操作
-        {'date': '2024-07-30', 'signal_type': 'normal_sell', 'signal_description': '空(执行)'},  # 信号+操作
-        {'date': '2024-08-23', 'signal_type': 'strong_sell', 'signal_description': '强空'},  # 仅信号，未操作
-        {'date': '2024-08-25', 'signal_type': 'strong_sell', 'signal_description': '强空(执行)'},  # 信号+操作
-    ])
-    # 将日期转换为datetime类型
-    signal_records['date'] = pd.to_datetime(signal_records['date'])
-    return signal_records
-
-
-def get_sample_trade_records():
-    """
-    获取示例交易记录
-
-    返回:
-        交易记录DataFrame
-    """
-    trade_records = pd.DataFrame([
-        {'date': '2024-01-17', 'action': 'B', 'signal_type': 'normal_buy', 'shares': 200},
-        {'date': '2024-02-20', 'action': 'B', 'signal_type': 'strong_buy', 'shares': 300},
-        {'date': '2024-03-20', 'action': 'S', 'signal_type': 'normal_sell', 'shares': 200},
-        {'date': '2024-04-15', 'action': 'S', 'signal_type': 'strong_sell', 'shares': 100},
-        {'date': '2024-05-08', 'action': 'B', 'signal_type': 'normal_buy', 'shares': 200},
-        {'date': '2024-06-12', 'action': 'B', 'signal_type': 'strong_buy', 'shares': 250},
-        {'date': '2024-07-30', 'action': 'S', 'signal_type': 'normal_sell', 'shares': 200},
-        {'date': '2024-08-25', 'action': 'S', 'signal_type': 'strong_sell', 'shares': 250},
-    ])
-    # 将日期转换为datetime类型
-    trade_records['date'] = pd.to_datetime(trade_records['date'])
-    return trade_records
-
-def get_sample_asset_records():
-    asset_records = pd.DataFrame([
-        {'date': '2024-01-15', 'total_assets': 1000000},  # 初始资金
-        {'date': '2024-01-17', 'total_assets': 799800},
-        {'date': '2024-02-20', 'total_assets': 409400},
-        {'date': '2024-03-20', 'total_assets': 1200200},
-        {'date': '2024-04-15', 'total_assets': 2000300}
-    ])
-    # 将日期转换为datetime类型
-    asset_records['date'] = pd.to_datetime(asset_records['date'])
-    return asset_records
-
-
 
 
 def filter_valid_dates(df, records):
@@ -574,21 +492,13 @@ def save_and_show_chart(fig, output_dir=None):
     return file_path
 
 
-def plotly_draw(kline_csv_path=None, signal_records=None, trade_records=None, asset_records=None, initial_capital=1000000):
-    """
-    主函数，整合所有功能步骤
-
-    参数:
-        kline_csv_path: 股票数据CSV文件路径
-        signal_records: 信号记录DataFrame（可选）
-        trade_records: 交易记录DataFrame（可选）
-        asset_records: 资产记录DataFrame（可选）
-        initial_capital: 初始资金
-    """
-    # 如果未提供CSV路径，则使用默认路径
-    if kline_csv_path is None:
-        kline_csv_path = stock_data_root / 'futu/HK.00700_腾讯控股_20230103_20251013.csv'
-
+def plotly_draw(kline_csv_path, strategy, initial_capital):
+    asset_record_manager = strategy.asset_record_manager
+    asset_records_df = asset_record_manager.transform_to_dataframe()
+    signal_record_manager = strategy.indicator.signal_record_manager
+    signals_df = signal_record_manager.transform_to_dataframe()
+    trade_record_manager = strategy.trade_record_manager
+    trades_df = trade_record_manager.transform_to_dataframe()
     # 1. 加载股票数据
     df = load_stock_data(kline_csv_path)
 
@@ -596,23 +506,23 @@ def plotly_draw(kline_csv_path=None, signal_records=None, trade_records=None, as
     df_continuous = prepare_continuous_dates(df)
 
     # 3. 获取信号记录和交易记录和资产记录
-    if signal_records is None:
-        signal_records = get_sample_signal_records()
-    if trade_records is None:
-        trade_records = get_sample_trade_records()
-    if asset_records is None:
-        asset_records = get_sample_asset_records()
+    if signals_df is None:
+        signals_df = get_sample_signal_records()
+    if trades_df is None:
+        trades_df = get_sample_trade_records()
+    if asset_records_df is None:
+        asset_records_df = get_sample_asset_records()
     logger.debug(f"买/卖信号记录：")
-    logger.debug(f"\n{signal_records}")
+    logger.debug(f"\n{signals_df}")
     logger.debug(f"交易记录：")
-    logger.debug(f"\n{trade_records}")
+    logger.debug(f"\n{trades_df}")
     logger.debug(f"资产记录：")
-    logger.debug(f"\n{asset_records}")
+    logger.debug(f"\n{asset_records_df}")
 
     # 4. 筛选有效的日期
-    valid_signals = filter_valid_dates(df, signal_records)
-    valid_trades = filter_valid_dates(df, trade_records)
-    valid_assets = filter_valid_dates(df, asset_records)
+    valid_signals = filter_valid_dates(df, signals_df)
+    valid_trades = filter_valid_dates(df, trades_df)
+    valid_assets = filter_valid_dates(df, asset_records_df)
 
     # 5. 计算持仓量和资产变化
     holdings_data = calculate_holdings(df_continuous, valid_trades, initial_capital)
@@ -647,9 +557,3 @@ def plotly_draw(kline_csv_path=None, signal_records=None, trade_records=None, as
     output_path = save_and_show_chart(fig,html_file_path)
 
     return output_path
-
-
-if __name__ == "__main__":
-    CSV_PATH = stock_data_root / "futu/HK.00700_腾讯控股_20210104_20240112.csv"
-    plotly_draw(CSV_PATH)
-    # plotly_draw()
