@@ -208,7 +208,9 @@ def create_trading_chart(chart_title_prefix, df, valid_signals, valid_trades, ho
             x=df.index,
             y=df['volume'],
             name='全景K图',
-            marker_color=['red' if close >= open else 'green' for open, close in zip(df['open'], df['close'])],
+            marker=dict(
+                color=['red' if close >= open else 'green' for open, close in zip(df['open'], df['close'])]
+            ),
         ),
         row=2, col=1
     )
@@ -219,7 +221,10 @@ def create_trading_chart(chart_title_prefix, df, valid_signals, valid_trades, ho
             x=df.index,
             y=df['volume'],
             name='成交量',
-            marker_color=['red' if close >= open else 'green' for open, close in zip(df['open'], df['close'])],
+            marker=dict(
+                color=['red' if close >= open else 'green' for open, close in zip(df['open'], df['close'])],
+                opacity=0.8  # 增加不透明度，使颜色更鲜艳
+            ),
         ),
         row=3, col=1
     )
