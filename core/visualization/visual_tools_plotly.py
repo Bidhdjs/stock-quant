@@ -149,18 +149,19 @@ def calculate_holdings(df_continuous, valid_trades, initial_capital):
         asset_history.append(total_assets)
 
     # 添加持仓量和总资产数据到DataFrame
-    holdings_data['holdings'] = holdings_history    # OK
-    holdings_data['total_assets'] = asset_history # OK
+    holdings_data['holdings'] = holdings_history
+    holdings_data['total_assets'] = asset_history
     holdings_data['adjusted_cost'] = adjusted_cost_history
 
     return holdings_data
 
 
-def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial_capital):
+def create_trading_chart(chart_title_prefix, df, valid_signals, valid_trades, holdings_data, initial_capital):
     """
     创建包含K线、信号和交易记录的图表
 
     参数:
+        chart_title_prefix: 图表标题前缀
         df: 原始股票数据处理后得到连续日期的股票数据
         valid_signals: 有效的信号记录
         valid_trades: 有效的交易记录
@@ -209,7 +210,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
             name='全景K图',
             marker_color=['red' if close >= open else 'green' for open, close in zip(df['open'], df['close'])],
         ),
-        row=3, col=1
+        row=2, col=1
     )
 
     # 3. 添加成交量柱状图
@@ -431,7 +432,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
     # 8. 设置图表布局
     fig.update_layout(
         title=dict(
-            text=f'股票交易策略回测分析',
+            text=f'{chart_title_prefix} - 股票交易策略回测分析',
             font=dict(family="SimHei, Arial", size=20, color="black", weight="bold"),
             x=0.5,
             y=0.99,
@@ -477,10 +478,12 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
     fig.update_yaxes(
         title_text="全景K图",
         showgrid=True,
+        showticklabels=False,  # 隐藏刻度标签
+        showline=False,  # 隐藏轴线
         gridwidth=1,
         gridcolor='LightGray',
         tickfont=dict(family="SimHei, Arial", size=12),
-        row=3, col=1
+        row=2, col=1
     )
 
     # 成交量Y轴
@@ -595,19 +598,7 @@ def plotly_draw(kline_csv_path, strategy, initial_capital):
         stock_name = parts[1]
         stock_info = f"{stock_code} {stock_name}"
 
-    fig = create_trading_chart(df_continuous, valid_signals, valid_trades, holdings_data, initial_capital)
-    if stock_info:
-        current_title = fig.layout.title.text
-        fig.update_layout(
-            title=dict(
-                text=f'{stock_info} - {current_title}',
-                font=dict(family="SimHei, Arial", size=20, color="black", weight="bold"),
-                x=0.5,
-                y=0.99,
-                xanchor='center',
-                yanchor='top'
-            )
-        )
+    fig = create_trading_chart(stock_info, df_continuous, valid_signals, valid_trades, holdings_data, initial_capital)
     # 7. 保存和显示图表
     relative_path = str(kline_csv_path).replace(str(stock_data_root) + '/', '')
     html_file_path = html_root /relative_path.rsplit('.', 1)[0]
