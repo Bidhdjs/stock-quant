@@ -71,7 +71,7 @@ def filter_valid_dates(df, records):
 
 def calculate_holdings(df_continuous, valid_trades, initial_capital):
     """
-    计算持仓量变化、总资产、平均持仓成本变化
+    计算持仓量变化、总资产、持仓成本变化
 
     参数:
         df_continuous: 连续日期的股票数据
@@ -79,11 +79,11 @@ def calculate_holdings(df_continuous, valid_trades, initial_capital):
         initial_capital: 初始资金
 
     返回:
-        包含持仓量和总资产和平均持仓成本的DataFrame
+        包含持仓量和总资产和持仓成本的DataFrame
     """
     holdings_data = pd.DataFrame(index=df_continuous.index)
     holdings_data['holdings'] = 0   # 持仓量
-    holdings_data['avg_cost'] = 0.0  # 平均持仓成本
+    holdings_data['adjusted_cost'] = 0.0  # 持仓成本
 
     # 检查valid_trades是否为空或不包含'date'列
     if valid_trades is None or valid_trades.empty or 'date' not in valid_trades.columns:
@@ -92,55 +92,54 @@ def calculate_holdings(df_continuous, valid_trades, initial_capital):
         return holdings_data
 
     # 初始化持仓量和资金
-    total_holdings = 0
-    capital = initial_capital
+    total_holdings = 0  # 当前持仓量
+    capital = initial_capital   # 剩余资金
     holdings_value = 0
     total_cost = 0.0  # 总持仓成本
-    avg_cost = 0.0    # 平均持仓成本
+    adjusted_cost = 0.0    # 持仓成本
 
     # 计算持仓量变化和总资产变化
     holdings_history = []
     asset_history = []
-    avg_cost_history = []
+    adjusted_cost_history = []
 
 
     for date in df_continuous.index:
         # 检查该日期是否有交易
         day_trades = valid_trades[valid_trades['date'] == date]
         for _, trade in day_trades.iterrows():
-            commission = trade['commission']
             if trade['action'] == 'B':
                 # 买入，持仓量增加
                 if date in df_continuous.index.dropna():
                     buy_price = trade['price']
-                    total_cost = (total_holdings * avg_cost + trade['size'] * buy_price) \
-                        if total_holdings > 0 else trade['size'] * buy_price
-                    total_holdings += trade['size']
-                    # 重新计算平均持仓成本
-                    avg_cost = total_cost / total_holdings
-                    # 从资金中扣除买入金额
-                    capital -= trade['size'] * buy_price + commission
+                    buy_size = trade['size']
+                    commission = trade['commission']
+                    current_cost = buy_size * buy_price + commission
+                    total_cost += current_cost
+                    capital -= current_cost
+                    total_holdings += buy_size
+                    adjusted_cost = total_cost / total_holdings
             elif trade['action'] == 'S':
                 # 卖出，持仓量减少
                 if date in df_continuous.index.dropna():
                     sell_price = trade['price']
-                    sell_size = trade['size']  # 卖出数量
-                    cost_to_reduce = avg_cost * sell_size
+                    sell_size = trade['size']
+                    commission = trade['commission']
+                    current_cost = sell_size * sell_price - commission
+                    total_cost -= current_cost
+                    capital += current_cost
                     total_holdings -= sell_size
-                    total_cost -= cost_to_reduce
-
-                    # 如果全部卖出，重置平均持仓成本
+                    # 如果全部卖出，重置持仓成本
                     if total_holdings <= 0:
-                        avg_cost = 0.0
+                        adjusted_cost = 0.0
                         total_cost = 0.0
                         total_holdings = 0
                     else:
-                        avg_cost = total_cost / total_holdings
-                    capital += trade['size'] * sell_price - commission
+                        adjusted_cost = total_cost / total_holdings
 
         # 保存当日持仓量
         holdings_history.append(total_holdings)
-        avg_cost_history.append(avg_cost)
+        adjusted_cost_history.append(adjusted_cost)
 
         # 计算总资产（现金+持仓市值）
         if date in df_continuous.index.dropna():
@@ -150,9 +149,9 @@ def calculate_holdings(df_continuous, valid_trades, initial_capital):
         asset_history.append(total_assets)
 
     # 添加持仓量和总资产数据到DataFrame
-    holdings_data['holdings'] = holdings_history
-    holdings_data['total_assets'] = asset_history
-    holdings_data['avg_cost'] = avg_cost_history
+    holdings_data['holdings'] = holdings_history    # OK
+    holdings_data['total_assets'] = asset_history # OK
+    holdings_data['adjusted_cost'] = adjusted_cost_history
 
     return holdings_data
 
@@ -182,7 +181,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
             '成交量',
             '持仓量变化',
             '总资产变化',
-            '平均持仓成本'
+            '持仓成本'
         ),
         row_heights=[0.35, 0.1, 0.15, 0.15, 0.15, 0.15]
     )
@@ -259,13 +258,13 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
         row=5, col=1
     )
 
-    # 6. 添加平均持仓成本变化曲线
+    # 6. 添加持仓成本变化曲线
     fig.add_trace(
         go.Scatter(
             x=holdings_data.index,
-            y=holdings_data['avg_cost'],
+            y=holdings_data['adjusted_cost'],
             mode='lines',
-            name='平均持仓成本',
+            name='持仓成本',
             line=dict(color='orange', width=2)
         ),
         row=6, col=1
@@ -506,7 +505,7 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
 
     # 总资产Y轴
     fig.update_yaxes(
-        title_text="总资产(元)",
+        title_text="总资产",
         showgrid=True,
         gridwidth=1,
         gridcolor='LightGray',
@@ -514,9 +513,9 @@ def create_trading_chart(df, valid_signals, valid_trades, holdings_data, initial
         row=5, col=1
     )
 
-    # 添加平均持仓成本Y轴
+    # 添加持仓成本Y轴
     fig.update_yaxes(
-        title_text="平均持仓成本(元)",
+        title_text="持仓成本",
         showgrid=True,
         gridwidth=1,
         gridcolor='LightGray',
