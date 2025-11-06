@@ -1,0 +1,403 @@
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票量化回测系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container-fluid p-0">
+        <!-- 顶部导航栏 - 添加sticky-top类实现吸顶效果 -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+            <div class="container-fluid px-0">
+                <div class="content">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <a class="navbar-brand" href="#">股票量化回测系统</a>
+                        <div class="d-flex align-items-center">
+                            <div class="navbar-nav me-4">
+                                <a class="nav-link active" href="#">回测</a>
+                                <a class="nav-link" href="#results">历史结果</a>
+                            </div>
+                            <a href="https://github.com/zhaoxusun/stock-quant" target="_blank" class="btn btn-outline-light btn-sm github-link">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16">
+                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                                </svg>
+                                GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主要内容区域 - 添加足够的顶部内边距，防止被吸顶导航栏遮挡 -->
+        <div class="content pt-4">
+            <!-- 回测配置面板 -->
+            <div class="card mt-4">
+                <div class="card-header bg-primary text-white">
+                    回测配置
+                </div>
+                <div class="card-body">
+                    <form id="backtestForm">
+                        <div class="row g-3">
+                            <!-- 数据源选择 -->
+                            <div class="col-md-4">
+                                <label for="dataSource" class="form-label">数据源</label>
+                                <select class="form-select" id="dataSource" name="dataSource" required>
+                                    <option value="">请选择数据源</option>
+                                    {% for source in data_sources %}
+                                    <option value="{{ source }}">{{ source }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- 股票选择 -->
+                            <div class="col-md-4">
+                                <label for="stockFile" class="form-label">股票</label>
+                                <select class="form-select" id="stockFile" name="stockFile"></select>
+                            </div>
+
+                            <!-- 批量/单个选择 -->
+                            <div class="col-md-4">
+                                <label class="form-label d-block">回测方式</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="backtestType" id="singleTest" value="single" checked>
+                                    <label class="form-check-label" for="singleTest">单个股票</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="backtestType" id="batchTest" value="batch">
+                                    <label class="form-check-label" for="batchTest">批量回测</label>
+                                </div>
+                            </div>
+
+                            <!-- 初始资金 -->
+                            <div class="col-md-4">
+                                <label for="initCash" class="form-label">初始资金</label>
+                                <input type="number" class="form-control" id="initCash" name="initCash" value="5000000" min="10000" step="10000">
+                            </div>
+
+                            <!-- 回测按钮 -->
+                            <div class="col-md-8 text-right align-self-end">
+                                <button type="submit" class="btn btn-primary btn-lg">开始回测</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 回测状态和结果 -->
+            <div class="card mt-4" id="resultCard" style="display: none;">
+                <div class="card-header bg-primary text-white">
+                    回测结果
+                </div>
+                <div class="card-body">
+                    <div id="resultMessage"></div>
+                    <div id="resultView" class="mt-4"></div>
+                </div>
+            </div>
+
+            <!-- 历史结果 -->
+            <div class="card mt-4" id="results">
+                <div class="card-header bg-primary text-white">
+                    历史回测结果
+                </div>
+                <div class="card-body">
+                    <!-- 筛选控件 -->
+                    <div class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="stockFilter" class="form-label">股票筛选</label>
+                                <input type="text" class="form-control" id="stockFilter" placeholder="输入股票名称关键字">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="sourceFilter" class="form-label">数据源</label>
+                                <select class="form-select" id="sourceFilter">
+                                    <option value="">全部数据源</option>
+                                    {% for source in data_sources %}
+                                    <option value="{{ source }}">{{ source }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="dateFilter" class="form-label">运行日期</label>
+                                <input type="date" class="form-control" id="dateFilter">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="pageSize" class="form-label">每页显示</label>
+                                <select class="form-select" id="pageSize">
+                                    <option value="20">20条</option>
+                                    <option value="50">50条</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <button class="btn btn-primary" onclick="loadResults(1)">筛选</button>
+                            <button class="btn btn-secondary" onclick="resetFilters()">重置</button>
+                        </div>
+                    </div>
+
+                    <!-- 结果表格 -->
+                    <table class="table table-hover table-striped">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>序号</th>
+                                <th>股票</th>
+                                <th>数据源</th>
+                                <th>运行时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTable"></tbody>
+                    </table>
+
+                    <!-- 分页控件 -->
+                    <div class="mt-4 d-flex justify-content-between align-items-center">
+                        <div>
+                            共 <span id="totalResults">0</span> 条记录
+                        </div>
+                        <nav>
+                            <ul class="pagination" id="pagination"></ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 当选择数据源时，加载对应的股票列表
+        document.getElementById('dataSource').addEventListener('change', function() {
+            const source = this.value;
+            const stockSelect = document.getElementById('stockFile');
+
+            if (source) {
+                fetch(`/get_stocks/${source}`)
+                    .then(response => response.json())
+                    .then(stocks => {
+                        // 清空现有选项
+                        stockSelect.innerHTML = '';
+
+                        // 添加新选项
+                        stocks.forEach(stock => {
+                            const option = document.createElement('option');
+                            option.value = stock.file;
+                            // option.textContent = `${stock.code} ${stock.name}`;
+                            option.textContent = stock.file.replace('.csv', '');
+                            stockSelect.appendChild(option);
+                        });
+
+                        // 根据回测类型设置股票选择的禁用状态
+                        updateStockSelectState();
+                    })
+                    .catch(error => console.error('Error loading stocks:', error));
+            } else {
+                stockSelect.innerHTML = '';
+            }
+        });
+
+        // 当回测类型改变时，更新股票选择的禁用状态
+        document.querySelectorAll('input[name="backtestType"]').forEach(radio => {
+            radio.addEventListener('change', updateStockSelectState);
+        });
+
+        function updateStockSelectState() {
+            const isBatch = document.getElementById('batchTest').checked;
+            const stockSelect = document.getElementById('stockFile');
+            stockSelect.disabled = isBatch;
+        }
+
+        // 提交回测表单
+        document.getElementById('backtestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const source = document.getElementById('dataSource').value;
+            const isBatch = document.getElementById('batchTest').checked;
+            const stockFile = document.getElementById('stockFile').value;
+            const initCash = document.getElementById('initCash').value;
+
+            // 显示加载状态
+            const resultCard = document.getElementById('resultCard');
+            const resultMessage = document.getElementById('resultMessage');
+            const resultView = document.getElementById('resultView');
+
+            resultCard.style.display = 'block';
+            resultMessage.innerHTML = '<div class="alert alert-info">回测正在进行中，请稍候...</div>';
+            resultView.innerHTML = '';
+
+            // 发送回测请求
+            fetch('/run_backtest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    source: source,
+                    stock_file: stockFile,
+                    is_batch: isBatch,
+                    init_cash: initCash
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultMessage.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+
+                    // 如果是单个股票回测且有结果路径，显示结果
+                    if (!isBatch && data.result_path) {
+                        resultView.innerHTML = `
+                            <div class="mt-4">
+                                <a href="/show_result/${data.result_path}" target="_blank" class="btn btn-primary">
+                                    查看回测结果
+                                </a>
+                            </div>
+                        `;
+                    }
+
+                    // 刷新历史结果列表
+                    loadResults(1);
+                } else {
+                    resultMessage.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                resultMessage.innerHTML = `<div class="alert alert-danger">回测失败：${error.message}</div>`;
+            });
+        });
+
+        // 加载历史结果，支持分页和筛选
+        function loadResults(page = 1) {
+            const stockFilter = document.getElementById('stockFilter').value;
+            const sourceFilter = document.getElementById('sourceFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const pageSize = document.getElementById('pageSize').value;
+
+            // 构建查询参数
+            const params = new URLSearchParams();
+            params.append('page', page);
+            params.append('page_size', pageSize);
+            if (stockFilter) params.append('stock', stockFilter);
+            if (sourceFilter) params.append('source', sourceFilter);
+            if (dateFilter) params.append('date', dateFilter);
+
+            fetch(`/get_backtest_results?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    // 处理可能的错误
+                    if (data.error) {
+                        console.error('Error loading results:', data.error);
+                        return;
+                    }
+
+                    const resultsTable = document.getElementById('resultsTable');
+                    resultsTable.innerHTML = '';
+
+                    // 显示结果数据
+                    data.results.forEach((result, index) => {
+                        const row = document.createElement('tr');
+                        const serialNumber = (page - 1) * pageSize + index + 1;
+                        row.innerHTML = `
+                            <td>${serialNumber}</td>
+                            <td>${result.stock}</td>
+                            <td>${result.source}</td>
+                            <td>${result.run_time}</td>
+                            <td>
+                                <a href="/show_result/${result.path}" target="_blank" class="btn btn-primary btn-sm">
+                                    查看
+                                </a>
+                            </td>
+                        `;
+                        resultsTable.appendChild(row);
+                    });
+
+                    // 更新总记录数
+                    document.getElementById('totalResults').textContent = data.total;
+
+                    // 生成分页控件
+                    renderPagination(data.page, data.total_pages);
+                })
+                .catch(error => console.error('Error loading results:', error));
+        }
+
+        // 生成分页控件
+        function renderPagination(currentPage, totalPages) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+
+            // 上一页按钮
+            const prevItem = document.createElement('li');
+            prevItem.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevItem.innerHTML = `
+                <a class="page-link" href="#" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            `;
+            prevItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (currentPage > 1) {
+                    loadResults(currentPage - 1);
+                }
+            });
+            pagination.appendChild(prevItem);
+
+            // 页码按钮
+            const maxButtons = 5; // 最多显示的页码按钮数量
+            let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+            if (endPage - startPage + 1 < maxButtons) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageItem = document.createElement('li');
+                pageItem.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageItem.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                pageItem.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    loadResults(i);
+                });
+                pagination.appendChild(pageItem);
+            }
+
+            // 下一页按钮
+            const nextItem = document.createElement('li');
+            nextItem.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextItem.innerHTML = `
+                <a class="page-link" href="#" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            `;
+            nextItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (currentPage < totalPages) {
+                    loadResults(currentPage + 1);
+                }
+            });
+            pagination.appendChild(nextItem);
+        }
+
+        // 重置筛选条件
+        function resetFilters() {
+            document.getElementById('stockFilter').value = '';
+            document.getElementById('sourceFilter').value = '';
+            document.getElementById('dateFilter').value = '';
+            document.getElementById('pageSize').value = '20';
+            loadResults(1);
+        }
+
+        // 监听分页大小变化
+        document.getElementById('pageSize').addEventListener('change', function() {
+            loadResults(1);
+        });
+
+        // 页面加载完成后加载历史结果
+        window.addEventListener('load', function() {
+            loadResults(1);
+        });
+    </script>
+</body>
+</html>
