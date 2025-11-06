@@ -8,3 +8,5 @@ plotly
 bokeh
 baostock
 chardet
+flask
+flask-cors
