@@ -3,7 +3,7 @@
 ---
 # Stock Quant - Local Backtest
 ## Environment Dependencies Installation
-- Python3 [官网](https://www.python.org/downloads/macos/)
+- Python3 [Download](https://www.python.org/downloads/macos/)
 ```
 MacOS: Download the Python3 installation package from the official website and install directly. You can also configure multiple Python3 environments to support free switching.
 For switching methods, see the Environment Initialization section.
@@ -30,12 +30,8 @@ pip install -r requirements-7.txt
 
 ## Quick Start
 ### 1. Historical K-line Data Preparation
-```
-Run core/stock/manager_xxxx to obtain K-line data
-```
-### 2. Backtest Execution
 
-#### 2.1 Data Preparation（csv format）
+#### 1.1 Data Preparation（csv format）
 - Get data by referring to the following code
   - core/stock/manage_akshare.py
   - core/stock/manage_futu.py
@@ -66,10 +62,9 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
 2021-11-03,435.08,438.91,434.62,438.55,2916130.0,,US.IVV,IVV,US
 2021-11-04,439.15,440.8,438.78,440.69,3039933.0,,US.IVV,IVV,US
 ```
+### 2. Backtest Execution（Two Ways）
 
-#### 2.2 Backtest Execution（Two Ways）
-
-##### 2.2.1 With Frontend Page
+#### 2.1 With Frontend Page
 - Start the frontend page
   - frontend/frontend_app.py
 - Execute backtest on the frontend page
@@ -80,7 +75,7 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
   - ![result_page](https://zhaoxusun.github.io/stock-quant/resource/img/backtest_result_1.png)
   - ![result_page](https://zhaoxusun.github.io/stock-quant/resource/img/backtest_result_2.png)
 
-##### 2.2.2 Direct Code Execution（Without Frontend Page）
+#### 2.2 Direct Code Execution（Without Frontend Page）
 - Run backtest code
   - Refer to the following code
 ```

@@ -3,7 +3,7 @@
 ---
 # 股票量化 - 本地回测
 ## 环境依赖安装
-- Python3 [官网](https://www.python.org/downloads/macos/)
+- Python3 [下载](https://www.python.org/downloads/macos/)
 ```
 MacOS:官网下载python3安装包，直接安装即可，也可以配置多个版本的python3环境，支持自由切换，
 切换方式查看环境初始化部分
@@ -30,12 +30,8 @@ pip install -r requirements-7.txt
 
 ## 快速开始
 ### 1. 历史k线数据准备
-```
-运行core/stock/manager_xxxx，获取k线数据
-```
-### 2. 回测运行
 
-#### 2.1 准备数据（csv格式）
+#### 1.1 准备数据（csv格式）
 - 获取数据可参考如下代码
   - core/stock/manage_akshare.py
   - core/stock/manage_futu.py
@@ -67,9 +63,9 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
 2021-11-04,439.15,440.8,438.78,440.69,3039933.0,,US.IVV,IVV,US
 ```
 
-#### 2.2 运行回测（两种方式）
+### 2 运行回测（两种方式）
 
-##### 2.2.1 带前端页面
+#### 2.1 带前端页面
 - 启动前端页面
   - frontend/frontend_app.py
 - 前端页面上执行回测
@@ -80,7 +76,7 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
   - ![result_page](https://zhaoxusun.github.io/stock-quant/resource/img/backtest_result_1.png)
   - ![result_page](https://zhaoxusun.github.io/stock-quant/resource/img/backtest_result_2.png)
 
-##### 2.2.2 直接运行代码（不带前端页面）
+#### 2.2 直接运行代码（不带前端页面）
 - 代码启动回测
   - 参考如下代码
 ```
