@@ -26,8 +26,8 @@ if __name__ == "__main__":
     #     )
 
     # 启动回测-单个股票
-    kline_csv_path = stock_data_root / "futu/HK.00175_吉利汽车_20211028_20251027.csv"
-    run_backtest_enhanced_volume_strategy(kline_csv_path, EnhancedVolumeStrategy)
+    # kline_csv_path = stock_data_root / "futu/HK.00175_吉利汽车_20211028_20251027.csv"
+    # run_backtest_enhanced_volume_strategy(kline_csv_path, EnhancedVolumeStrategy)
     # 启动回测-批量股票
-    kline_csv_path_folder = stock_data_root / "akshare"
+    kline_csv_path_folder = stock_data_root / "futu"
     run_backtest_enhanced_volume_strategy_multi(kline_csv_path_folder, EnhancedVolumeStrategy)
