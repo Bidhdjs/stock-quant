@@ -31,11 +31,7 @@ pip install -r requirements-7.txt
 ## Quick Start
 ### 1. Historical K-line Data Preparation
 
-#### 1.1 Data Preparation（csv format）
-- Get data by referring to the following code
-  - core/stock/manage_akshare.py
-  - core/stock/manage_futu.py
-  - core/stock/manage_baostock.py
+#### 1.1 Data Preparation（csv format. the step is optional. you can prepare the data by yourself or get it from the frontend page）
 
 ```
 csv data format
@@ -70,6 +66,8 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
 - Execute backtest on the frontend page
   - Get the historical k-line data of the target stock (supports A-share, HK-share, and US-share)
   - Select the stock to backtest (supports A-share, HK-share, and US-share)
+  - Select the strategy to backtest (current code supports EnhancedVolumeStrategy. you can view the strategy in core/strategy/trading/volume/trading_strategy_volume.py)
+    - Or add your own strategy (refer to the EnhancedVolumeStrategy class in core/strategy/trading/volume/trading_strategy_volume.py)
   - Click the "Backtest" button to execute the backtest
   - ![index_page](https://zhaoxusun.github.io/stock-quant/resource/img/index.png)
   - Backtest results will be displayed on the frontend page
