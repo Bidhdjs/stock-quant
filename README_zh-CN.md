@@ -31,12 +31,7 @@ pip install -r requirements-7.txt
 ## 快速开始
 ### 1. 历史k线数据准备
 
-#### 1.1 准备数据（csv格式）
-- 获取数据可参考如下代码
-  - core/stock/manage_akshare.py
-  - core/stock/manage_futu.py
-  - core/stock/manage_baostock.py
-
+#### 1.1 准备数据（csv格式，该步骤可选，自行准备数据，或者通过前端页面获取数据）
 ```
 csv数据格式
 A股数据格式
@@ -71,6 +66,8 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
 - 前端页面上执行回测
   - 获取目标股票的历史k线数据（支持A股、港股、美股）
   - 选择要回测的股票（支持A股、港股、美股）
+  - 选择要回测的策略（当前代码中策略你可以在core/strategy/trading/volume/trading_strategy_volume.py中查看）
+    - 或者通过代码添加你的策略（参考core/strategy/trading/volume/trading_strategy_volume.py中的EnhancedVolumeStrategy类）
   - 点击“回测”按钮，即可执行回测
   - ![index_page](https://zhaoxusun.github.io/stock-quant/resource/img/index.png)
   - 回测结果会在前端页面上展示
