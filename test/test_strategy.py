@@ -1,12 +1,7 @@
 from common.logger import create_log
-from core.quant.quant_manage import run_backtest_enhanced_volume_strategy, run_backtest_enhanced_volume_strategy_multi
+from core.quant.quant_manage import run_backtest_enhanced_volume_strategy
 from core.strategy.trading.volume.enhanced_volume import EnhancedVolumeStrategy
-from core.strategy.trading.volume.single_volume_ import SingleVolumeStrategy
 from settings import stock_data_root
-from core.stock.manager_futu import get_user_selected_stock_list, get_single_hk_stock_history
-import futu as ft
-import datetime
-
 
 logger = create_log('test_strategy')
 
@@ -32,4 +27,4 @@ if __name__ == "__main__":
     run_backtest_enhanced_volume_strategy(kline_csv_path, EnhancedVolumeStrategy)
     # 启动回测-批量股票
     kline_csv_path_folder = stock_data_root / "akshare"
-    run_backtest_enhanced_volume_strategy_multi(kline_csv_path_folder, SingleVolumeStrategy)
+    # run_backtest_enhanced_volume_strategy_multi(kline_csv_path_folder, SingleVolumeStrategy)
