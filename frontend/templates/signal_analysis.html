@@ -741,169 +741,64 @@
             const sellSignals = document.getElementById('sellSignals').textContent;
             const uniqueStocks = document.getElementById('uniqueStocks').textContent;
 
-            // 创建HTML内容
-            const htmlContent = `
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>信号分析报告 - ${new Date().toLocaleString()}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        body { background-color: #2a2a2a; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .stats-container { display: flex; justify-content: space-around; margin-bottom: 30px; flex-wrap: wrap; }
-        .stat-box {
-            text-align: center;
-            padding: 15px;
-            background: #3a3a3a;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            margin: 10px;
-            flex: 1;
-            min-width: 200px;
-            color: #e0e0e0;
-        }
-        .stat-value { font-size: 1.8rem; font-weight: bold; margin: 5px 0; }
-        .price-up { color: #ff6b6b; }
-        .price-down { color: #4ecdc4; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #3a3a3a;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            color: #e0e0e0;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #555;
-        }
-        th {
-            background-color: #4a4a4a;
-            color: #fff;
-            font-weight: 600;
-        }
-        tr:hover {
-            background-color: #404040;
-        }
-        .filters {
-            background: #3a3a3a;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            color: #e0e0e0;
-        }
-        .timestamp { text-align: right; color: #999; margin-top: 10px; font-size: 0.9rem; }
-        h1, h2, h3 { color: #fff; }
-        strong { color: #ccc; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>信号分析报告</h1>
-            <p>此报告包含根据筛选条件分析的信号数据</p>
-        </div>
+            // 准备发送给后端的数据
+            const requestData = {
+                signals_data: allSignalsData,
+                filters: {
+                    strategy_name: strategyFilter,
+                    stock_code: stockFilter,
+                    signal_type: signalTypeFilter,
+                    start_date: startDate,
+                    end_date: endDate
+                },
+                summary: {
+                    total_signals: totalSignals,
+                    buy_signals: buySignals,
+                    sell_signals: sellSignals,
+                    unique_stocks: uniqueStocks
+                }
+            };
 
-        <div class="filters">
-            <h3>筛选条件</h3>
-            <div class="row">
-                <div class="col-md-4">
-                    <strong>策略：</strong>${strategyFilter || '全部策略'}
-                </div>
-                <div class="col-md-4">
-                    <strong>股票：</strong>${stockFilter || '全部股票'}
-                </div>
-                <div class="col-md-4">
-                    <strong>信号类型：</strong>${signalTypeFilter || '全部类型'}
-                </div>
-            </div>
-            <div class="row mt-2">
-                <div class="col-md-6">
-                    <strong>起始时间：</strong>${startDate || '不限制'}
-                </div>
-                <div class="col-md-6">
-                    <strong>结束时间：</strong>${endDate || '不限制'}
-                </div>
-            </div>
-        </div>
+            // 显示加载状态
+            showNotification('info', '正在生成HTML报告...', null);
 
-        <div class="stats-container">
-            <div class="stat-box">
-                <div>总信号数</div>
-                <div class="stat-value">${totalSignals}</div>
-            </div>
-            <div class="stat-box">
-                <div>买入信号</div>
-                <div class="stat-value price-up">${buySignals}</div>
-            </div>
-            <div class="stat-box">
-                <div>卖出信号</div>
-                <div class="stat-value price-down">${sellSignals}</div>
-            </div>
-            <div class="stat-box">
-                <div>涉及股票数</div>
-                <div class="stat-value">${uniqueStocks}</div>
-            </div>
-        </div>
+            // 调用后端API生成HTML报告
+            fetch('/generate_html_report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 创建下载链接
+                    const blob = new Blob([data.html_content], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.file_name;
+                    document.body.appendChild(a);
+                    a.click();
 
-        <h2>信号详情</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>日期</th>
-                    <th>信号类型</th>
-                    <th>描述</th>
-                    <th>股票信息</th>
-                    <th>数据源</th>
-                    <th>策略</th>
-                </tr>
-            </thead>
-            <tbody>
-${allSignalsData.map(signal => {
-    let signalTypeClass = signal.signal_type && signal.signal_type.includes('buy') ? 'price-up' :
-                         (signal.signal_type && signal.signal_type.includes('sell') ? 'price-down' : '');
-    return `                <tr>
-                    <td>${signal.date || '-'}</td>
-                    <td class="${signalTypeClass}">${signal.signal_type || '-'}</td>
-                    <td>${signal.description || '-'}</td>
-                    <td>${signal.stock_info || '-'}</td>
-                    <td>${signal.data_source || '-'}</td>
-                    <td>${signal.strategy_name || '-'}</td>
-                </tr>`;
-}).join('\n')}
-            </tbody>
-        </table>
+                    // 清理
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
 
-        <div class="timestamp">
-            报告生成时间：${new Date().toLocaleString()}
-        </div>
-    </div>
-</body>
-</html>
-            `;
+                    // 显示成功通知
+                    showNotification('success', 'HTML报告下载成功');
 
-            // 创建下载链接
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `信号分析报告_${new Date().toLocaleString('zh-CN').replace(/[\/\s:]/g, '_')}.html`;
-            document.body.appendChild(a);
-            a.click();
-
-            // 清理
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            // 显示下载成功通知
-            showNotification('success', 'HTML报告下载成功');
+                    // 可选：如果需要也可以调用保存API（但这个新实现中后端已经保存了）
+                    // sendHtmlToBackend(data.html_content, data.file_name);
+                } else {
+                    showNotification('error', `生成HTML报告失败: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('生成HTML报告时发生错误:', error);
+                showNotification('error', '生成HTML报告时发生网络错误');
+            });
         }
     </script>
 </body>
