@@ -3,8 +3,11 @@ import sys
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
+from flask import make_response
+import json
 
 from common.util_csv import combine_data, read_data
+from common.util_html import signals_to_html
 from core.stock import manager_baostock, manager_akshare, manager_futu
 from core.strategy.strategy_manager import global_strategy_manager
 
@@ -397,11 +400,17 @@ def get_signal_files():
 
         # 按文件创建时间倒序排序
         signal_files.sort(key=lambda x: x['file_time'], reverse=True)
+        response_data = {'success': True, 'signal_files': signal_files}
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
 
-        return jsonify({'success': True, 'signal_files': signal_files})
     except Exception as e:
         logger.error(f"获取信号文件失败: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)})
+        error_response_data = {'success': False, 'message': str(e)}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
 
 
 @app.route('/analyze_signals', methods=['POST'])
@@ -465,6 +474,7 @@ def analyze_signals():
         combined_df = combined_df.sort_values(by='date', ascending=False)
 
         # 转换为JSON格式
+
         result = {
             'signals': combined_df.to_dict('records'),
             'summary': {
@@ -475,18 +485,26 @@ def analyze_signals():
                 'unique_strategies': combined_df['strategy_name'].nunique()
             }
         }
-
-        return jsonify({'success': True, 'data': result})
+        response_data = {'success': True, 'data': result}
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
     except Exception as e:
         logger.error(f"分析信号失败: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)})
+        error_response_data = {'success': False, 'message': str(e)}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
 
 @app.route('/get_signal_metadata')
 def get_signal_metadata():
     """获取信号元数据（用于筛选）"""
     try:
         if not os.path.exists(signals_root):
-            return jsonify({'success': False, 'message': '信号目录不存在'})
+            response_data = {'success': False, 'message': '信号目录不存在'}
+            response = make_response(json.dumps(response_data, ensure_ascii=False))
+            response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return response
 
         strategies = set()
         stock_codes = set()
@@ -515,18 +533,67 @@ def get_signal_metadata():
                             signal_types.update(df['signal_type'].unique())
                     except:
                         pass
-
-        return jsonify({
+        response_data = {
             'success': True,
             'metadata': {
                 'strategies': list(strategies),
                 'stock_codes': list(stock_codes),
                 'signal_types': list(signal_types)
             }
-        })
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
     except Exception as e:
         logger.error(f"获取信号元数据失败: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)})
+        error_response_data = {'success': False, 'message': str(e)}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+# 在现有API端点后添加新的端点
+@app.route('/generate_html_report', methods=['POST'])
+def generate_html_report():
+    """生成HTML报告"""
+    try:
+        data = request.get_json()
+        signals_data = data.get('signals_data', [])
+        filters = data.get('filters', {})
+        summary = data.get('summary', {})
+
+        if not signals_data:
+            response_data = {'success': False, 'message': '没有可生成报告的信号数据'}
+            response = make_response(json.dumps(response_data, ensure_ascii=False))
+            response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return response
+
+        # 生成HTML报告
+        html_content = signals_to_html(signals_data, filters, summary)
+
+        # 生成文件名
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_name = f"信号分析报告_{timestamp}.html"
+
+        logger.info(f"HTML信号分析报告已生成: {file_name}")
+        logger.debug(f"HTML信号分析报告内容已生成: {html_content}")
+
+        # 返回HTML内容和文件名，方便前端下载
+        response_data = {
+            'success': True,
+            'message': 'HTML报告生成成功',
+            'html_content': html_content,
+            'file_name': file_name,
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+
+    except Exception as e:
+        logger.error(f"生成HTML报告失败: {str(e)}")
+        error_response_data = {'success': False, 'message': str(e)}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
 
 if __name__ == '__main__':
     # 在开发环境中运行，生产环境应使用WSGI服务器
