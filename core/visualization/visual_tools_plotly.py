@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from common.logger import create_log
+from common.time_key import get_current_time
 from common.util_csv import load_stock_data
 from core.visualization.visual_demo import get_sample_signal_records, get_sample_trade_records, get_sample_asset_records
 from settings import stock_data_root, html_root
@@ -534,7 +535,7 @@ def create_trading_chart(chart_title_prefix, df, valid_signals, valid_trades, ho
     return fig
 
 
-def save_and_show_chart(fig, output_dir=None):
+def save_and_show_chart(fig, file_name, output_dir=None):
     """
     保存图表并在浏览器中显示
 
@@ -545,9 +546,6 @@ def save_and_show_chart(fig, output_dir=None):
     返回:
         保存的文件路径
     """
-    # 获取当前时间作为文件名的一部分
-    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_name = f"stock_with_trades_{current_time}.html"
 
     # 如果指定了输出目录，则使用该目录
     if output_dir:
@@ -565,7 +563,7 @@ def save_and_show_chart(fig, output_dir=None):
     return file_path
 
 
-def plotly_draw(kline_csv_path, strategy, initial_capital):
+def plotly_draw(kline_csv_path, strategy, initial_capital, html_file_name,html_file_path):
     signal_record_manager = strategy.indicator.signal_record_manager
     signals_df = signal_record_manager.transform_to_dataframe()
     trade_record_manager = strategy.trade_record_manager
@@ -605,9 +603,6 @@ def plotly_draw(kline_csv_path, strategy, initial_capital):
 
     fig = create_trading_chart(stock_info, df_continuous, valid_signals, valid_trades, holdings_data, initial_capital)
     # 7. 保存和显示图表
-    relative_path = str(kline_csv_path).replace(str(stock_data_root) + '/', '')
-    html_file_path = html_root /relative_path.rsplit('.', 1)[0] /strategy.__class__.__name__
-    logger.info(f"回测可视化图表将保存至：{html_file_path}，对应股票数据：{kline_csv_path}")
-    output_path = save_and_show_chart(fig,html_file_path)
+    output_path = save_and_show_chart(fig, html_file_name, html_file_path)
 
     return output_path

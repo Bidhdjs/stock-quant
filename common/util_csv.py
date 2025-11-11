@@ -33,3 +33,23 @@ def load_stock_data(csv_path):
         index_col='date'  # 将date列设为索引，方便按日期查询
     )
     return df
+
+def read_data(csv_path):
+    """
+    读取信号数据并设置日期索引
+
+    参数:
+        csv_path: 信号数据CSV文件路径
+
+    返回:
+        加载好的DataFrame
+    """
+    df = pd.read_csv(
+        csv_path,
+    )
+    return df
+
+def combine_data(data_list, ignore_index=True):
+    combined_df = pd.concat(data_list, ignore_index=ignore_index)
+    return combined_df
+

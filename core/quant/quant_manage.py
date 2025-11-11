@@ -1,7 +1,10 @@
+import os
+
 import backtrader as bt
 import pandas as pd
 
 from common.logger import create_log
+from common.time_key import get_current_time
 from core.strategy.trading.trading_commition import CommissionFactory
 from core.visualization.visual_tools_plotly import plotly_draw
 from pathlib import Path
@@ -22,6 +25,8 @@ def run_backtest_enhanced_volume_strategy_multi(kline_csv_folder_path, trading_s
         run_backtest_enhanced_volume_strategy(kline_csv_path, trading_strategy,init_cash)
 
 def run_backtest_enhanced_volume_strategy(csv_path, trading_strategy: bt.Strategy, init_cash=settings.INIT_CASH):
+    current_time = get_current_time()
+    relative_path = str(csv_path).replace(str(settings.stock_data_root) + '/', '')
     logger.info("=" * 60)
     logger.info("【程序启动】VolumeIndicatorStrategy回测程序")
     logger.info(f"【目标文件】{csv_path}")
@@ -111,11 +116,29 @@ def run_backtest_enhanced_volume_strategy(csv_path, trading_strategy: bt.Strateg
     except Exception as e:
         logger.warning(f"4. 信号统计：无法计算 ({str(e)})")
 
-    html_path = plotly_draw(csv_path, strategy, init_cash)
-    logger.info(f"5. 回测可视化图表将保存至：{html_path}，对应股票数据：{csv_path}")
+    # 保存信号记录
+    try:
+        if hasattr(strategy, 'indicator') and hasattr(strategy.indicator, 'signal_record_manager'):
+            # 获取信号记录并转换为DataFrame
+            signals_df = strategy.indicator.signal_record_manager.transform_to_dataframe()
+
+            if not signals_df.empty:
+                signal_file_folder = settings.signals_root / relative_path.rsplit('.', 1)[0] / strategy.__class__.__name__
+                os.makedirs(signal_file_folder, exist_ok=True)
+                # 保存所有信号到一个文件
+                signals_file_path = os.path.join(signal_file_folder, f"stock_signals_{current_time}.csv")
+                signals_df.to_csv(signals_file_path, index=False, encoding='utf-8-sig')
+                logger.info(f"5. 信号记录已保存至：{signals_file_path}")
+
+    except Exception as e:
+        logger.warning(f"信号保存失败：{str(e)}")
+
+    html_file_path = settings.html_root / relative_path.rsplit('.', 1)[0] / strategy.__class__.__name__
+    html_file_name = f"stock_with_trades_{current_time}.html"
+    html_path = plotly_draw(csv_path, strategy, init_cash, html_file_name, html_file_path)
+    logger.info(f"6. 回测可视化图表将保存至：{html_path}，对应股票数据：{csv_path}")
     logger.info("=" * 60)
     logger.info("【回测结束】\n")
-
 
 
 

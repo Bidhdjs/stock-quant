@@ -1,13 +1,10 @@
 import os
 import sys
-import futu as ft
 from datetime import datetime
-import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
+from common.util_csv import combine_data, read_data
 from core.stock import manager_baostock, manager_akshare, manager_futu
 from core.strategy.strategy_manager import global_strategy_manager
 
@@ -17,10 +14,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # 导入项目模块
 from common.logger import create_log
 from core.quant.quant_manage import run_backtest_enhanced_volume_strategy, run_backtest_enhanced_volume_strategy_multi
-from core.strategy.trading.volume.enhanced_volume import EnhancedVolumeStrategy
-from settings import stock_data_root, html_root
-from core.visualization.visual_tools_plotly import prepare_continuous_dates, filter_valid_dates, calculate_holdings
-from common.util_csv import load_stock_data
+from settings import stock_data_root, html_root, signals_root
+
 # 导入数据获取相关模块
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -357,6 +352,175 @@ def acquire_stock_data():
     except Exception as e:
         logger.error(f"获取股票数据时出错: {str(e)}")
         return jsonify({'error': f'获取数据时发生错误: {str(e)}'}), 500
+
+
+# 在现有的路由下方添加信号分析相关的路由
+
+@app.route('/signal_analysis')
+def signal_analysis():
+    """信号分析页面"""
+    return render_template('signal_analysis.html')
+
+
+@app.route('/get_signal_files')
+def get_signal_files():
+    """获取所有信号文件信息"""
+    try:
+        if not os.path.exists(signals_root):
+            return jsonify({'success': False, 'message': '信号目录不存在'})
+
+        signal_files = []
+        # 遍历信号目录
+        for root, dirs, files in os.walk(signals_root):
+            for file in files:
+                if file.endswith('.csv') and file.startswith('stock_signals_'):
+                    file_path = os.path.join(root, file)
+                    # 从路径中提取元数据
+                    relative_path = os.path.relpath(file_path, signals_root)
+                    parts = relative_path.split(os.sep)
+
+                    # 解析路径信息
+                    data_source = parts[0] if len(parts) > 0 else 'unknown'
+                    stock_info = parts[1] if len(parts) > 1 else 'unknown'
+                    strategy_name = parts[2] if len(parts) > 2 else 'unknown'
+
+                    # 获取文件创建时间
+                    file_time = datetime.fromtimestamp(os.path.getctime(file_path)).strftime('%Y-%m-%d %H:%M:%S')
+
+                    signal_files.append({
+                        'file_path': relative_path,
+                        'data_source': data_source,
+                        'stock_info': stock_info,
+                        'strategy_name': strategy_name,
+                        'file_time': file_time
+                    })
+
+        # 按文件创建时间倒序排序
+        signal_files.sort(key=lambda x: x['file_time'], reverse=True)
+
+        return jsonify({'success': True, 'signal_files': signal_files})
+    except Exception as e:
+        logger.error(f"获取信号文件失败: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/analyze_signals', methods=['POST'])
+def analyze_signals():
+    """分析信号文件"""
+    try:
+        data = request.json
+        file_paths = data.get('file_paths', [])
+        filters = data.get('filters', {})
+
+        all_signals = []
+
+        for file_path in file_paths:
+            full_path = os.path.join(signals_root, file_path)
+
+            if not os.path.exists(full_path):
+                continue
+
+            # 读取CSV文件
+            df = read_data(full_path)
+
+            # 从文件路径中提取元数据
+            parts = file_path.split(os.sep)
+            data_source = parts[0] if len(parts) > 0 else 'unknown'
+            stock_info = parts[1] if len(parts) > 1 else 'unknown'
+            strategy_name = parts[2] if len(parts) > 2 else 'unknown'
+
+            # 添加元数据到DataFrame
+            df['data_source'] = data_source
+            df['stock_info'] = stock_info
+            df['strategy_name'] = strategy_name
+            df['file_path'] = file_path
+
+            all_signals.append(df)
+
+        if not all_signals:
+            return jsonify({'success': False, 'message': '没有找到有效的信号文件'})
+
+        # 合并所有信号数据
+        combined_df = combine_data(all_signals, True)
+
+        # 应用筛选条件
+        if filters:
+            if 'strategy_name' in filters and filters['strategy_name']:
+                combined_df = combined_df[combined_df['strategy_name'] == filters['strategy_name']]
+
+            if 'stock_code' in filters and filters['stock_code']:
+                combined_df = combined_df[combined_df['stock_info'].str.contains(filters['stock_code'])]
+
+            if 'signal_type' in filters and filters['signal_type']:
+                combined_df = combined_df[combined_df['signal_type'] == filters['signal_type']]
+
+        # 按时间倒序排序
+        combined_df = combined_df.sort_values(by='date', ascending=False)
+
+        # 转换为JSON格式
+        result = {
+            'signals': combined_df.to_dict('records'),
+            'summary': {
+                'total_signals': len(combined_df),
+                'buy_signals': len(combined_df[combined_df['signal_type'].str.contains('buy')]),
+                'sell_signals': len(combined_df[combined_df['signal_type'].str.contains('sell')]),
+                'unique_stocks': combined_df['stock_info'].nunique(),
+                'unique_strategies': combined_df['strategy_name'].nunique()
+            }
+        }
+
+        return jsonify({'success': True, 'data': result})
+    except Exception as e:
+        logger.error(f"分析信号失败: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/get_signal_metadata')
+def get_signal_metadata():
+    """获取信号元数据（用于筛选）"""
+    try:
+        if not os.path.exists(signals_root):
+            return jsonify({'success': False, 'message': '信号目录不存在'})
+
+        strategies = set()
+        stock_codes = set()
+        signal_types = set()
+
+        # 遍历信号目录
+        for root, dirs, files in os.walk(signals_root):
+            for file in files:
+                if file.endswith('.csv') and file.startswith('stock_signals_'):
+                    file_path = os.path.join(root, file)
+
+                    # 从路径中提取策略名称
+                    relative_path = os.path.relpath(file_path, signals_root)
+                    parts = relative_path.split(os.sep)
+                    if len(parts) > 2:
+                        strategies.add(parts[2])
+
+                    # 从文件名中提取股票代码
+                    if len(parts) > 1:
+                        stock_codes.add(parts[1])
+
+                    # 读取文件获取信号类型
+                    try:
+                        df = read_data(file_path)
+                        if 'signal_type' in df.columns:
+                            signal_types.update(df['signal_type'].unique())
+                    except:
+                        pass
+
+        return jsonify({
+            'success': True,
+            'metadata': {
+                'strategies': list(strategies),
+                'stock_codes': list(stock_codes),
+                'signal_types': list(signal_types)
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取信号元数据失败: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)})
 
 
 if __name__ == '__main__':
