@@ -712,7 +712,6 @@ def generate_html_report():
         }
         response = make_response(json.dumps(response_data, ensure_ascii=False))
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        raise Exception("测试异常")
         return response
 
     except Exception as e:
