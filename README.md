@@ -5,7 +5,7 @@
 ## 环境依赖安装
 - Python3 [下载](https://www.python.org/downloads/macos/)
 ```
-MacOS:官网下载python3安装包，直接安装即可，也可以配置多个版本的python3环境，支持自由切换，
+MacOS/Windows/Linux:官网下载python3安装包，直接安装即可，也可以配置多个版本的python3环境，支持自由切换，
 切换方式查看环境初始化部分
 ```
 
@@ -93,6 +93,7 @@ if __name__ == "__main__":
     kline_csv_path_folder = stock_data_root / "akshare"
     run_backtest_enhanced_volume_strategy_multi(kline_csv_path_folder, EnhancedVolumeStrategy)
 ```
+
 ### 3. 回测结果分析
 #### 3.1 分析回测结果
 ```
