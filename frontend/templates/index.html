@@ -472,10 +472,10 @@
                     resultMessage.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
 
                     // 如果是单个股票回测且有结果路径，显示结果
-                    if (!isBatch && data.result_path) {
+                    if (!isBatch && data.data.result_path) {
                         resultView.innerHTML = `
                             <div class="mt-4">
-                                <a href="/show_result/${data.result_path}" target="_blank" class="btn btn-primary">
+                                <a href="/show_result/${data.data.result_path}" target="_blank" class="btn btn-primary">
                                     查看回测结果
                                 </a>
                             </div>

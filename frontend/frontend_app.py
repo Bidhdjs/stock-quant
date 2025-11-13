@@ -1,20 +1,18 @@
 import os
+import secrets
 import sys
 from datetime import datetime
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from flask import Flask, render_template, request, send_from_directory
 from flask_cors import CORS
 from flask import make_response
 import json
-
 from common.util_csv import combine_data, read_data
 from common.util_html import signals_to_html
 from core.stock import manager_baostock, manager_akshare, manager_futu
 from core.strategy.strategy_manager import global_strategy_manager
-
-# 添加项目根目录到Python路径
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-# 导入项目模块
 from common.logger import create_log
 from core.quant.quant_manage import run_backtest_enhanced_volume_strategy, run_backtest_enhanced_volume_strategy_multi
 from settings import stock_data_root, html_root, signals_root
@@ -26,6 +24,7 @@ sys.path.append(project_root)
 
 # 初始化Flask应用
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(32)
 CORS(app)
 logger = create_log('quant_frontend')
 
