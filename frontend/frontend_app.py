@@ -2,6 +2,7 @@ import os
 import secrets
 import sys
 from datetime import datetime
+from functools import wraps
 
 from core.strategy.indicator_manager import global_indicator_manager
 
@@ -35,7 +36,83 @@ logger = create_log('quant_frontend')
 DATA_SOURCES = ['akshare', 'baostock', 'futu']
 
 
+def log_request_details(f):
+    """
+    记录请求详情的装饰器
+    """
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 记录请求开始
+        request_id = secrets.token_hex(8)
+        start_time = datetime.now()
+
+        # 获取请求详情
+        method = request.method
+        url = request.url
+        path = request.path
+
+        # 获取请求参数
+        query_params = dict(request.args)
+
+        # 获取请求体（对于POST请求等）
+        request_body = None
+        if request.is_json:
+            try:
+                request_body = request.get_json()
+            except Exception as e:
+                logger.warning(f"Request ID: {request_id} - Failed to parse JSON body: {str(e)}")
+
+        # 记录请求详情（不记录过大的请求体）
+        log_data = {
+            'request_id': request_id,
+            'method': method,
+            'path': path,
+            'query_params': query_params,
+            'client_ip': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent', ''),
+        }
+
+        # 只记录较小的请求体，避免日志过大
+        if request_body and len(str(request_body)) < 10000:
+            log_data['request_body'] = request_body
+        elif request_body:
+            log_data['request_body_size'] = len(str(request_body))
+
+        logger.info(f"Request received: {json.dumps(log_data, ensure_ascii=False)}")
+
+        try:
+            # 执行原始函数
+            response = f(*args, **kwargs)
+
+            # 记录响应信息
+            end_time = datetime.now()
+            processing_time = (end_time - start_time).total_seconds() * 1000  # 毫秒
+
+            # 获取响应状态码
+            status_code = response.status_code if hasattr(response, 'status_code') else 200
+
+            logger.info(f"Request completed: request_id={request_id}, status_code={status_code}, "
+                        f"processing_time={processing_time:.2f}ms")
+
+            return response
+
+        except Exception as e:
+            # 记录异常信息
+            end_time = datetime.now()
+            processing_time = (end_time - start_time).total_seconds() * 1000  # 毫秒
+
+            logger.error(f"Request failed: request_id={request_id}, error={str(e)}, "
+                         f"processing_time={processing_time:.2f}ms", exc_info=True)
+
+            # 重新抛出异常，让Flask处理
+            raise
+
+    return decorated_function
+
+
 @app.route('/')
+@log_request_details
 def index():
     """主页，显示数据源和股票选择界面"""
     strategies = global_strategy_manager.get_strategy_names()
@@ -43,6 +120,7 @@ def index():
 
 
 @app.route('/get_stocks/<source>')
+@log_request_details
 def get_stocks(source):
     """获取指定数据源下的所有股票文件"""
     if source not in DATA_SOURCES:
@@ -91,6 +169,7 @@ def get_stocks(source):
 
 
 @app.route('/run_backtest', methods=['POST'])
+@log_request_details
 def run_backtest():
     """运行回测"""
     try:
@@ -173,6 +252,7 @@ def run_backtest():
 
 
 @app.route('/get_backtest_results')
+@log_request_details
 def get_backtest_results():
     """获取所有回测结果"""
     results = []
@@ -264,6 +344,7 @@ def get_backtest_results():
 
 
 @app.route('/show_result/<path:result_path>')
+@log_request_details
 def show_result(result_path):
     """显示回测结果图表"""
     try:
@@ -290,18 +371,21 @@ def show_result(result_path):
 
 
 @app.route('/static/<path:filename>')
+@log_request_details
 def serve_static(filename):
     """提供静态文件服务"""
     return send_from_directory('static', filename)
 
 
 @app.route('/html/<path:filename>')
+@log_request_details
 def serve_html(filename):
     """提供HTML结果文件服务"""
     return send_from_directory('../html', filename)
 
 
 @app.route('/acquire_stock_data', methods=['POST'])
+@log_request_details
 def acquire_stock_data():
     """获取股票历史数据"""
     try:
@@ -330,6 +414,7 @@ def acquire_stock_data():
 
         # 根据市场和数据源调用不同的数据获取函数
         success = False
+        filename = None
         if data_source == 'akshare':
             if market == 'hk':
                 if not stock_code.startswith('HK') :
@@ -338,7 +423,7 @@ def acquire_stock_data():
                     error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
                     return error_response
                 stock_code = stock_code.replace('HK.', '')
-                success = manager_akshare.get_single_hk_stock_history(
+                success, filename = manager_akshare.get_single_hk_stock_history(
                     stock_code=stock_code,
                     start_date=start_date,
                     end_date=end_date,
@@ -351,9 +436,8 @@ def acquire_stock_data():
                     error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
                     error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
                     return error_response
-                    # return jsonify({'error': f'{market}股票代码请保证前缀US: {stock_code}'}), 400
                 stock_code = stock_code.replace('US.', '')
-                success = manager_akshare.get_single_us_history(
+                success, filename = manager_akshare.get_single_us_history(
                     stock_code=stock_code,
                     start_date=start_date,
                     end_date=end_date,
@@ -384,7 +468,7 @@ def acquire_stock_data():
                     return error_response
                 stock_code = stock_code.replace('SH.', 'sh.')
                 stock_code = stock_code.replace('SZ.', 'sz.')
-                success = manager_baostock.get_single_cn_stock_history(
+                success, filename = manager_baostock.get_single_cn_stock_history(
                     stock_code=stock_code,
                     start_date=start_date,
                     end_date=end_date,
@@ -414,7 +498,7 @@ def acquire_stock_data():
                     error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
                     error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
                     return error_response
-                success = manager_futu.get_single_cn_stock_history(
+                success, filename = manager_futu.get_single_cn_stock_history(
                     stock_code=stock_code,
                     start_date=start_date,
                     end_date=end_date,
@@ -427,7 +511,7 @@ def acquire_stock_data():
                     error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
                     error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
                     return error_response
-                success = manager_futu.get_single_hk_stock_history(
+                success, filename = manager_futu.get_single_hk_stock_history(
                     stock_code=stock_code,
                     start_date=start_date,
                     end_date=end_date,
@@ -448,8 +532,10 @@ def acquire_stock_data():
         if success:
             response_data = {
                 'success': True,
-                'message': f'股票数据获取成功！股票代码: {stock_code}',
-                'data':{}
+                'message': f'股票数据获取成功！股票代码: {stock_code}, 数据文件已保存至: {filename}',
+                'data':{
+                    'filename': filename
+                }
             }
             response = make_response(json.dumps(response_data, ensure_ascii=False))
             response.headers['Content-Type'] = 'application/json; charset=utf-8'
@@ -470,12 +556,14 @@ def acquire_stock_data():
 
 
 @app.route('/signal_analysis')
+@log_request_details
 def signal_analysis():
     """信号分析页面"""
     return render_template('signal_analysis.html')
 
 
 @app.route('/get_signal_files')
+@log_request_details
 def get_signal_files():
     """获取所有信号文件信息"""
     try:
@@ -533,6 +621,7 @@ def get_signal_files():
 
 
 @app.route('/analyze_signals', methods=['POST'])
+@log_request_details
 def analyze_signals():
     """分析信号文件"""
     try:
@@ -620,6 +709,7 @@ def analyze_signals():
         return error_response
 
 @app.route('/get_signal_metadata')
+@log_request_details
 def get_signal_metadata():
     """获取信号元数据（用于筛选）"""
     try:
@@ -679,6 +769,7 @@ def get_signal_metadata():
         return error_response
 # 在现有API端点后添加新的端点
 @app.route('/generate_html_report', methods=['POST'])
+@log_request_details
 def generate_html_report():
     """生成HTML报告"""
     try:
@@ -724,6 +815,7 @@ def generate_html_report():
         return error_response
 
 @app.route('/strategy_code')
+@log_request_details
 def strategy_code():
     """策略代码查看页面"""
     strategies = global_strategy_manager.get_strategy_names()
@@ -732,6 +824,7 @@ def strategy_code():
 
 
 @app.route('/get_strategy_code/<strategy_name>')
+@log_request_details
 def get_strategy_code(strategy_name):
     """获取策略代码"""
     try:
@@ -759,6 +852,7 @@ def get_strategy_code(strategy_name):
 
 
 @app.route('/get_indicator_code/<indicator_name>')
+@log_request_details
 def get_indicator_code(indicator_name):
     """获取指标类的源代码"""
     try:

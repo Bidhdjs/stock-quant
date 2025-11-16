@@ -36,6 +36,7 @@ class TestIndicatorFetcher:
         :param autype: 复权类型，默认为前复权 QFQ
         :param output_dir: CSV文件保存目录，默认为'futu'
         :return: 包含 K 线数据的 DataFrame
+        csv_name: str = None
         """
         try:
             ret, data, page_req_key = self.quote_ctx.request_history_kline(
@@ -45,12 +46,13 @@ class TestIndicatorFetcher:
             # 检查返回值是否有效
             if ret != ft.RET_OK:
                 logger.error(f"获取历史 K 线数据失败: {data}")
-                return pd.DataFrame()
+                return pd.DataFrame(), None
 
             # 检查data是否为有效的DataFrame
             if not isinstance(data, pd.DataFrame) or data.empty:
                 logger.warning(f"获取的K线数据为空或格式不正确: {type(data)}")
-                return pd.DataFrame()
+                return pd.DataFrame(), None
+
 
             # 创建临时DataFrame用于处理原始数据
             df = data.copy()
@@ -109,7 +111,7 @@ class TestIndicatorFetcher:
             result_df['stock_code'] = stock_code
             result_df['stock_name'] = stock_name
             result_df['market'] = market
-
+            csv_name = None
             # 保存到CSV文件
             try:
                 # 获取日期范围并格式化
@@ -122,8 +124,8 @@ class TestIndicatorFetcher:
                         end_date_formatted = valid_dates.max().strftime('%Y%m%d')
 
                 # 保存到CSV
-                filename = os.path.join(stock_data_root, output_dir,
-                                        f"{stock_code}_{stock_name}_{start_date_formatted}_{end_date_formatted}.csv")
+                csv_name = f"{stock_code}_{stock_name}_{start_date_formatted}_{end_date_formatted}.csv"
+                filename = os.path.join(stock_data_root, output_dir, csv_name)
 
                 save_to_csv(result_df.round(2), filename)  # 整个df保留2位小数
             except Exception as e:
@@ -135,10 +137,10 @@ class TestIndicatorFetcher:
                 if not valid_dates.empty:
                     logger.info(f"数据时间范围: {valid_dates.min()} 至 {valid_dates.max()}")
 
-            return result_df
+            return result_df, csv_name
         except Exception as e:
             logger.error(f"获取K线数据时发生异常: {e}")
-            return pd.DataFrame()
+            return pd.DataFrame(), None
 
     def close_connection(self):
         """
@@ -208,19 +210,19 @@ def indicator_fetcher(stock_code='HK.00700'):
 def get_single_hk_stock_history(stock_code, start_date, end_date, adjust_type=ft.AuType.QFQ, output_dir='futu'):
     fetcher = TestIndicatorFetcher()
     try:
-        df = fetcher.get_history_kline(stock_code, start=start_date, end=end_date,
+        df, csv_name = fetcher.get_history_kline(stock_code, start=start_date, end=end_date,
                                        autype=adjust_type, output_dir=output_dir)
 
         if not df.empty:
             logger.info("数据预览：")
             logger.info(df.head())
-            return True
+            return True, csv_name
         else:
             logger.warning(f"未能获取股票 {stock_code} 的数据")
-            return False
+            return False, None
     except Exception as e:
         logger.error(f"获取股票 {stock_code} 数据时发生错误: {e}")
-        return False
+        return False, None
     finally:
         fetcher.close_connection()
 
