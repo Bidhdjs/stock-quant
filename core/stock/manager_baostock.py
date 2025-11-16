@@ -109,6 +109,7 @@ def get_single_cn_stock_history(stock_code, start_date, end_date, adjust_type = 
 
     返回:
     bool: 是否成功获取并保存数据
+    csv_name: str = None
     """
     try:
         if not init_baostock():
@@ -128,13 +129,13 @@ def get_single_cn_stock_history(stock_code, start_date, end_date, adjust_type = 
             start_date_formatted = df['date'].min().strftime('%Y%m%d')
             end_date_formatted = df['date'].max().strftime('%Y%m%d')
             # 保存到CSV
-            filename = os.path.join(stock_data_root, output_dir,
-                                    f"{stock_code}_{stock_name}_{start_date_formatted}_{end_date_formatted}.csv")
+            csv_name = f"{stock_code}_{stock_name}_{start_date_formatted}_{end_date_formatted}.csv"
+            filename = os.path.join(stock_data_root, output_dir, csv_name)
             save_to_csv(df.round(2), filename) # 整个df保留2位小数
-            return True
+            return True, csv_name
         else:
             logger.warning(f"未能获取A股 {stock_code} 的数据")
-            return False
+            return False, None
     finally:
         bs.logout()
         logger.info("已退出连接")

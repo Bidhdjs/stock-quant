@@ -211,6 +211,7 @@ def save_clean_html(html_content):
     output_path = '/Users/romanzhao/PycharmProjects/stock-quant/frontend/templates/fixed_signal_analysis.html'
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
+    logger.info(f"成功保存HTML报告到 {output_path}")
     return output_path
 
 
