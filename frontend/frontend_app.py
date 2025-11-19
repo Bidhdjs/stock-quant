@@ -5,6 +5,7 @@ from datetime import datetime
 from functools import wraps
 
 from core.strategy.indicator_manager import global_indicator_manager
+from core.task.task_manager import TaskManager
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -31,7 +32,7 @@ app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 CORS(app)
 logger = create_log('quant_frontend')
-
+task_manager = TaskManager()
 # 支持的数据源
 DATA_SOURCES = ['akshare', 'baostock', 'futu']
 
@@ -874,6 +875,286 @@ def get_indicator_code(indicator_name):
     except Exception as e:
         logger.error(f"Error getting indicator code: {str(e)}")
         error_response_data = {'success': False, 'message': f'Error getting indicator code: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/schedule')
+@log_request_details
+def schedule_page():
+    """定时任务管理页面"""
+    strategies = global_strategy_manager.get_strategy_names()
+    return render_template('schedule.html', strategies=strategies)
+
+
+@app.route('/api/tasks/get_all', methods=['GET'])
+@log_request_details
+def get_all_tasks():
+    """获取所有任务"""
+    try:
+        tasks = task_manager.read_all()
+        response_data = {
+            'success': True,
+            'message': f'获取到 {len(tasks)} 个任务',
+            'data': tasks
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"获取任务列表失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'获取任务列表失败: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/api/tasks/get/<task_id>', methods=['GET'])
+@log_request_details
+def get_task_by_id(task_id):
+    """根据ID获取任务"""
+    try:
+        task = task_manager.read(task_id)
+        if not task:
+            error_response_data = {'success': False, 'message': f'任务不存在: {task_id}', 'data': {}}
+            error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+            error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return error_response
+
+        response_data = {
+            'success': True,
+            'message': '获取任务成功',
+            'data': task
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"获取任务失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'获取任务失败: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/api/tasks/create', methods=['POST'])
+@log_request_details
+def create_task():
+    """创建新任务"""
+    try:
+        task_data = request.json
+        if not task_data:
+            error_response_data = {'success': False, 'message': '任务数据不能为空', 'data': {}}
+            error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+            error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return error_response
+
+        created_task = task_manager.create(task_data)
+        if not created_task:
+            error_response_data = {'success': False, 'message': '创建任务失败', 'data': {}}
+            error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+            error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return error_response
+
+        response_data = {
+            'success': True,
+            'message': '创建任务成功',
+            'data': created_task
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"创建任务失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'创建任务失败: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/api/tasks/update/<task_id>', methods=['POST'])
+@log_request_details
+def update_task_by_id(task_id):
+    """更新任务"""
+    try:
+        request_data = request.json
+        if not request_data:
+            error_response_data = {'success': False, 'message': '更新数据不能为空', 'data': {}}
+            error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+            error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return error_response
+        update_data = request_data.get('taskData', request_data)
+        updated_task = task_manager.update(task_id, update_data)
+        if not updated_task:
+            error_response_data = {'success': False, 'message': f'更新任务失败: 任务不存在', 'data': {}}
+            error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+            error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return error_response
+
+        response_data = {
+            'success': True,
+            'message': '更新任务成功',
+            'data': updated_task
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"更新任务失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'更新任务失败: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/api/tasks/delete/<task_id>', methods=['POST'])
+@log_request_details
+def delete_task_by_id(task_id):
+    """删除任务"""
+    try:
+        success = task_manager.delete(task_id)
+        if not success:
+            error_response_data = {'success': False, 'message': f'删除任务失败: 任务不存在', 'data': {}}
+            error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+            error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return error_response
+
+        response_data = {
+            'success': True,
+            'message': '删除任务成功',
+            'data': {}
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"删除任务失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'删除任务失败: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/api/tasks/query', methods=['POST'])
+@log_request_details
+def query_tasks():
+    """根据条件查询任务"""
+    try:
+        filters = request.json
+        tasks = task_manager.query(filters)
+
+        response_data = {
+            'success': True,
+            'message': f'查询到 {len(tasks)} 个符合条件的任务',
+            'data': tasks
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"查询任务失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'查询任务失败: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/api/tasks/enable/<task_id>', methods=['POST'])
+@log_request_details
+def enable_task(task_id):
+    """启用任务"""
+    try:
+        enabled_task = task_manager.enable(task_id)
+        if not enabled_task:
+            error_response_data = {'success': False, 'message': f'启用任务失败: 任务不存在', 'data': {}}
+            error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+            error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return error_response
+
+        response_data = {
+            'success': True,
+            'message': '启用任务成功',
+            'data': enabled_task
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"启用任务失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'启用任务失败: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/api/tasks/disable/<task_id>', methods=['POST'])
+@log_request_details
+def disable_task(task_id):
+    """禁用任务"""
+    try:
+        disabled_task = task_manager.disable(task_id)
+        if not disabled_task:
+            error_response_data = {'success': False, 'message': f'禁用任务失败: 任务不存在', 'data': {}}
+            error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+            error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return error_response
+
+        response_data = {
+            'success': True,
+            'message': '禁用任务成功',
+            'data': disabled_task
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"禁用任务失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'禁用任务失败: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/api/tasks/count', methods=['GET'])
+@log_request_details
+def get_task_count():
+    """获取任务总数"""
+    try:
+        count = task_manager.count()
+        response_data = {
+            'success': True,
+            'message': '获取任务数量成功',
+            'data': {'count': count}
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"获取任务数量失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'获取任务数量失败: {str(e)}', 'data': {}}
+        error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
+        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return error_response
+
+
+@app.route('/api/tasks/exists/<task_id>', methods=['GET'])
+@log_request_details
+def check_task_exists(task_id):
+    """检查任务是否存在"""
+    try:
+        exists = task_manager.exists(task_id)
+        response_data = {
+            'success': True,
+            'message': '检查任务存在状态成功',
+            'data': {'exists': exists}
+        }
+        response = make_response(json.dumps(response_data, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+    except Exception as e:
+        logger.error(f"检查任务存在状态失败: {str(e)}")
+        error_response_data = {'success': False, 'message': f'检查任务存在状态失败: {str(e)}', 'data': {}}
         error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
         error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
         return error_response

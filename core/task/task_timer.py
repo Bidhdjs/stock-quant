@@ -7,29 +7,24 @@ import os
 import schedule
 from common.logger import create_log
 from common.util_html import signals_to_html, save_clean_html
+from core.task.task_config import load_tasks
 from settings import signals_root
 
 logger = create_log('task_timer')
 
 # API基础URL
 BASE_URL = "http://localhost:5000"
+# 全局任务列表和调度器
+current_tasks = []
+scheduled_jobs = {}
 
-# 配置目标股票列表
-TARGET_STOCKS = [
-    # 港股示例
-    # {"market": "hk", "data_source": "akshare", "stock_code": "HK.09988", "adjust_type": "qfq"},  # 腾讯控股
-    # 美股示例
-    {"market": "us", "data_source": "akshare", "stock_code": "US.IVV", "adjust_type": "qfq"},  # 标普500 ETF
-    # A股示例
-    {"market": "cn", "data_source": "baostock", "stock_code": "SH.600519", "adjust_type": "qfq"}  # 贵州茅台
-]
-
-# 配置回测参数
-BACKTEST_CONFIG = {
-    "strategy": "EnhancedVolumeStrategy",
-    "init_cash": 5000000
+# 任务函数映射表
+TASK_FUNCTIONS = {
+    "daily_task": "daily_task",
+    "get_stock_data_task": "get_stock_data_for_all",
+    "run_backtest_task": "run_backtest_for_all",
+    "check_signals_task": "check_recent_signals"
 }
-
 
 def get_stock_data(stock_config):
     """
@@ -73,16 +68,26 @@ def get_stock_data(stock_config):
         logger.error(f"获取股票数据时发生异常: {stock_config['stock_code']}, 异常: {str(e)}")
         return False
 
+# 修改任务执行函数，传入任务特定的配置
+def get_stock_data_for_all(target_stocks):
+    """为指定的目标股票获取数据"""
+    logger.info("开始为所有目标股票获取数据")
+    success_count = 0
+    for stock in target_stocks:
+        if get_stock_data(stock):
+            success_count += 1
+    logger.info(f"股票数据获取完成，成功: {success_count}/{len(target_stocks)}")
+    return success_count == len(target_stocks)
 
-def run_backtest_for_stocks():
+
+def run_backtest_for_stocks(target_stocks, backtest_config):
     """
     通过接口运行回测，使用TARGET_STOCKS中的数据源和股票信息
     """
-    logger.info("开始运行回测")
-
+    logger.info("开始为所有目标股票运行回测")
     # 使用TARGET_STOCKS中配置的股票和数据源
     success_count = 0
-    for stock in TARGET_STOCKS:
+    for stock in target_stocks:
         stock_code = stock["stock_code"]
         data_source = stock["data_source"]
         stock_file = stock["filename"]
@@ -100,8 +105,8 @@ def run_backtest_for_stocks():
                 "source": data_source,
                 "stock_file": stock_file,
                 "is_batch": False,
-                "init_cash": BACKTEST_CONFIG["init_cash"],
-                "strategy": BACKTEST_CONFIG["strategy"]
+                "init_cash": backtest_config["init_cash"],
+                "strategy": backtest_config["strategy"]
             }
 
             response = requests.post(url, json=payload, timeout=300)
@@ -124,14 +129,14 @@ def run_backtest_for_stocks():
     return True
 
 
-def check_yesterday_signals():
+def check_yesterday_signals(target_stocks,days=365):
     """
     检查昨天买入信号
     """
     logger.info("开始检查昨天信号")
 
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-    start_day = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+    start_day = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
     try:
         # 获取所有信号文件
         response = requests.get(f"{BASE_URL}/get_signal_files")
@@ -151,13 +156,13 @@ def check_yesterday_signals():
         for signal_file in signal_files:
             all_signal_files.append(signal_file['file_path'])
         for signal_file in all_signal_files:
-            for stock in TARGET_STOCKS:
+            for stock in target_stocks:
                 data_source = stock["data_source"]
                 stock_file = stock["filename"]
                 if data_source in signal_file and stock_file.replace('.csv', '') in signal_file:
                     target_signal_file.append(signal_file)
         if len(target_signal_file) == 0:
-            for stock in TARGET_STOCKS:
+            for stock in target_stocks:
                 stock_file = stock["filename"]
                 logger.error(f"没有信号文件包含股票 {stock_file.replace('.csv', '')}")
             return
@@ -204,44 +209,124 @@ def check_yesterday_signals():
         logger.error(f"检查信号过程中发生异常: {str(e)}")
         return False
 
-def daily_task():
+def daily_task(target_stocks, backtest_config):
     """
     每日定时任务主函数
     """
     logger.info("===== 开始执行每日定时任务 =====")
 
     # 1. 获取股票数据
-    for stock in TARGET_STOCKS:
+    for stock in target_stocks:
         if not get_stock_data(stock):
             return
 
     # 2. 运行回测
-    if not run_backtest_for_stocks():
+    if not run_backtest_for_stocks(target_stocks, backtest_config):
         return
     #
     # 3. 检查当天信号
-    check_yesterday_signals()
-
-
-
+    check_yesterday_signals(target_stocks)
     logger.info("===== 每日定时任务执行完毕 =====")
+
+
+def execute_task(task_id, task_name, task_config):
+    """
+    执行指定的任务
+    """
+    logger.info(f"执行任务: {task_id} - {task_name}")
+
+    # 获取任务特定的配置
+    target_stocks = task_config.get("target_stocks", [])
+    backtest_config = task_config.get("backtest_config", {})
+    params = task_config.get("params", {})
+
+    if not target_stocks:
+        logger.error(f"任务 {task_id} 没有配置目标股票")
+        return False
+
+    try:
+        # 根据任务名称执行相应的函数
+        if task_name == "daily_task":
+            daily_task(target_stocks, backtest_config)
+        elif task_name == "get_stock_data_task":
+            get_stock_data_for_all(target_stocks)
+        elif task_name == "run_backtest_task":
+            run_backtest_for_stocks(target_stocks, backtest_config)
+        elif task_name == "check_signals_task":
+            days = params.get("days", 1)
+            check_yesterday_signals(target_stocks, days)
+        else:
+            logger.error(f"未知任务类型: {task_name}")
+            return False
+
+        logger.info(f"任务执行成功: {task_id}")
+        return True
+    except Exception as e:
+        logger.error(f"执行任务时出错: {task_id}, 错误: {str(e)}", exc_info=True)
+        return False
+
+
+def update_schedule():
+    """
+    更新定时任务调度
+    """
+    global current_tasks
+
+    # 加载最新的任务配置
+    tasks = load_tasks()
+    current_tasks = tasks
+
+    # 清除现有的所有调度任务
+    for job in schedule.jobs:
+        schedule.cancel_job(job)
+    scheduled_jobs.clear()
+
+    # 添加新的调度任务
+    enabled_tasks_count = 0
+    for task in tasks:
+        if task.get("enabled", False):
+            enabled_tasks_count += 1
+            task_id = task["id"]
+            task_name = task.get("function", "daily_task")
+            task_time = task.get("time", "19:00")
+            params = task.get("params", {})
+
+            # 创建一个闭包来确保每个任务使用正确的参数
+            def create_task_handler(task_id, task_name, task_config):
+                def task_handler():
+                    execute_task(task_id, task_name, task_config)
+
+                return task_handler
+
+            # 设置定时任务
+            job = schedule.every().day.at(task_time).do(create_task_handler(task_id, task_name, task))
+            scheduled_jobs[task_id] = job
+            logger.info(f"已添加任务调度: {task_id} - {task_name}，时间: {task_time}")
+
+    logger.info(f"任务调度更新完成，已启用 {enabled_tasks_count}/{len(tasks)} 个任务")
 
 
 def schedule_tasks():
     """
     设置定时任务
     """
-    # 设置每天15:00执行
-    time_pattern = "19:04"
-    schedule.every().day.at(time_pattern).do(daily_task)
-
-    logger.info(f"定时任务已设置，每天{time_pattern}执行")
+    logger.info("启动定时任务调度器")
+    # 初始更新调度
+    update_schedule()
+    # 每小时重新加载一次配置，以便及时响应配置更改
+    schedule.every(1).hour.do(update_schedule)
 
     # 持续运行定时任务
     while True:
         schedule.run_pending()
         time.sleep(60)  # 每分钟检查一次
 
+
+def get_current_tasks():
+    """
+    获取当前加载的任务列表
+    """
+    return current_tasks
 
 if __name__ == "__main__":
     # 可以选择立即执行一次任务，或者直接启动定时任务

@@ -1,0 +1,48 @@
+[
+  {
+    "name": "每日股票分析任务",
+    "type": "backtest",
+    "description": "12",
+    "schedule_time": "0 0 0 0 0",
+    "enabled": true,
+    "target_stocks": [
+      {
+        "market": "us",
+        "data_source": "akshare",
+        "stock_code": "HK.00700",
+        "adjust_type": "hfq"
+      }
+    ],
+    "backtest_config": {
+      "strategy": "EnhancedVolumeStrategy",
+      "init_cash": 5000000,
+      "during": 1460
+    },
+    "id": "task_20251119210530",
+    "create_time": "2025-11-19 21:05:30",
+    "update_time": "2025-11-19 21:42:55"
+  },
+  {
+    "name": "撒地方过后就哭了",
+    "type": "backtest",
+    "description": "23",
+    "schedule_time": "0 0 0 0 0",
+    "enabled": true,
+    "target_stocks": [
+      {
+        "market": "us",
+        "data_source": "baostock",
+        "stock_code": "HK.00700",
+        "adjust_type": "qfq"
+      }
+    ],
+    "backtest_config": {
+      "strategy": "EnhancedVolumeStrategy",
+      "init_cash": 5000001,
+      "during": 1458
+    },
+    "id": "task_20251119211159",
+    "create_time": "2025-11-19 21:11:59",
+    "update_time": "2025-11-19 21:42:55"
+  }
+]
