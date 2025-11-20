@@ -80,47 +80,73 @@
                                 <small class="form-text text-muted mt-1">Cron格式: 分 时 日 月 周</small>
                             </div>
 
-                            <!-- 数据源 -->
-                            <div class="col-md-4" id="dataSourceField">
-                                <label for="dataSource" class="form-label">数据源 <span class="text-danger">*</span></label>
-                                <select class="form-select" id="dataSource" name="dataSource" required>
-                                    <option value="">请选择数据源</option>
-                                    <option value="akshare">akshare</option>
-                                    <option value="baostock">baostock</option>
-                                    <option value="futu">futu</option>
-                                </select>
-                                <div class="invalid-feedback">请选择数据源</div>
+
+                            <!-- 股票实体列表管理 -->
+                            <div class="col-12" id="stockEntitiesContainer">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <span class="mb-0">目标股票列表 <span class="text-danger">*</span></span>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- 添加股票实体的表单 -->
+                                        <div class="row g-3 mb-3 p-3 bg-dark bg-opacity-70 rounded">
+                                            <div class="col-md-3">
+                                                <label for="newDataSource" class="form-label">数据源</label>
+                                                <select class="form-select bg-dark text-light border-secondary" id="newDataSource">
+                                                    <option value="akshare">akshare</option>
+                                                    <option value="baostock">baostock</option>
+                                                    <option value="futu">futu</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="newMarket" class="form-label">市场</label>
+                                                <select class="form-select bg-dark text-white border-secondary" id="newMarket">
+                                                    <option value="us">美股</option>
+                                                    <option value="cn">A股</option>
+                                                    <option value="hk">港股</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="newStockCode" class="form-label">股票代码</label>
+                                                <input type="text" class="form-control bg-dark text-white border-secondary placeholder-white" id="newStockCode" placeholder="例如: US.IVV, SH.600519, HK.00700">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="newAdjustType" class="form-label">复权类型</label>
+                                                <select class="form-select bg-dark text-white border-secondary" id="newAdjustType">
+                                                    <option value="qfq">前复权</option>
+                                                    <option value="hfq">后复权</option>
+                                                    <option value="None">不复权</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-1 align-self-end">
+                                                <button type="button" class="btn btn-primary w-100" id="addStockButton">添加股票</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- 股票实体列表 -->
+                                        <div class="overflow-auto" style="max-height: 300px;">
+                                            <table class="table table-sm table-dark table-hover" id="stockEntitiesTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>数据源</th>
+                                                        <th>市场</th>
+                                                        <th>股票代码</th>
+                                                        <th>复权类型</th>
+                                                        <th>操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="stockEntitiesTableBody">
+                                                    <!-- 股票实体将通过JavaScript动态添加 -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div id="noStockEntities" class="text-center py-4 text-white">
+                                            暂无股票实体，请添加至少一个
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <!-- 市场 -->
-                            <div class="col-md-4" id="marketField">
-                                <label for="market" class="form-label">市场 <span class="text-danger">*</span></label>
-                                <select class="form-select" id="market" name="market" required>
-                                    <option value="">请选择市场</option>
-                                    <option value="us">美股</option>
-                                    <option value="cn">A股</option>
-                                    <option value="hk">港股</option>
-                                </select>
-                                <div class="invalid-feedback">请选择市场</div>
-                            </div>
-
-                            <!-- 股票代码 -->
-                            <div class="col-md-4" id="stockCodeField">
-                                <label for="stockCode" class="form-label">股票代码 <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="stockCode" name="stockCode" placeholder="例如: IVV, 600519, 00700" required>
-                                <div class="invalid-feedback">股票代码不能为空</div>
-                            </div>
-
-                            <!-- 复权类型 -->
-                            <div class="col-md-4" id="adjustTypeField">
-                                <label for="adjustType" class="form-label">复权类型 <span class="text-danger">*</span></label>
-                                <select class="form-select" id="adjustType" name="adjustType" required>
-                                    <option value="qfq">前复权</option>
-                                    <option value="hfq">后复权</option>
-                                    <option value="None">不复权</option>
-                                </select>
-                                <div class="invalid-feedback">请选择复权类型</div>
-                            </div>
 
                             <!-- 策略名称 -->
                             <div class="col-md-4" id="strategyField">
@@ -195,6 +221,24 @@
                         <p>暂无定时任务</p>
                     </div>
                 </div>
+                <!-- 分页控件 -->
+            <div class="card-footer" id="paginationContainer">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-white">
+                        共 <span id="totalItems"></span> 条记录，每页显示
+                        <select id="pageSize" class="form-select form-select-sm d-inline-block w-auto">
+                            <option value="2">2</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        条
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm" id="pagination"></ul>
+                    </nav>
+                </div>
+            </div>
             </div>
         </div>
     </div>
@@ -272,53 +316,121 @@
             justify-content: flex-end;
             gap: 12px;
         }
+
+        /* 设置placeholder文本为白色 */
+        .placeholder-white::placeholder {
+            color: white;
+            opacity: 0.8; /* 稍微降低透明度以区分实际输入的文本 */
+        }
+
+        /* 针对不同浏览器的兼容性 */
+        .placeholder-white::-webkit-input-placeholder {
+            color: white;
+            opacity: 0.8;
+        }
+
+        .placeholder-white:-moz-placeholder {
+            color: white;
+            opacity: 0.8;
+        }
+
+        .placeholder-white::-moz-placeholder {
+            color: white;
+            opacity: 0.8;
+        }
+
+        .placeholder-white:-ms-input-placeholder {
+            color: white;
+            opacity: 0.8;
+        }
+        /* 分页控件样式 */
+        .pagination .page-link {
+            background-color: #343a40;
+            border-color: #495057;
+            color: white;
+        }
+
+        .pagination .page-link:hover {
+            background-color: #495057;
+            border-color: #6c757d;
+        }
+
+        .pagination .active .page-link {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .pagination .disabled .page-link {
+            background-color: #343a40;
+            border-color: #495057;
+            color: #6c757d;
+        }
     </style>
 
     <script>
+        let stockEntities = [];
+        // 分页相关变量
+        let currentPage = 1;
+        let pageSize = 20;
+        let totalTasks = [];
         // 页面加载完成后执行
         document.addEventListener('DOMContentLoaded', function() {
-
+            // 初始化分页功能
+            initPagination();
             // 加载任务列表
             loadTasks();
 
             // 任务类型选择变化时，动态显示/隐藏相关字段
             document.getElementById('taskType').addEventListener('change', function() {
                 const taskType = this.value;
-                const dataSourceField = document.getElementById('dataSourceField');
-                const marketField = document.getElementById('marketField');
-                const stockCodeField = document.getElementById('stockCodeField');
-                const adjustTypeField = document.getElementById('adjustTypeField');
+                const stockEntitiesContainer = document.getElementById('stockEntitiesContainer');
                 const strategyField = document.getElementById('strategyField');
                 const initCashField = document.getElementById('initCashField');
                 const duringField = document.getElementById('duringField');
 
                 // 重置必填状态
-                document.getElementById('dataSource').required = true;
-                document.getElementById('market').required = true;
-                document.getElementById('stockCode').required = true;
-                document.getElementById('adjustType').required = true;
                 document.getElementById('strategy').required = true;
                 document.getElementById('initCash').required = true;
                 document.getElementById('during').required = true;
 
                 // 根据任务类型显示不同的字段
                 if (taskType === 'backtest') {
-                    dataSourceField.classList.remove('d-none');
-                    marketField.classList.remove('d-none');
-                    stockCodeField.classList.remove('d-none');
-                    adjustTypeField.classList.remove('d-none');
+                    stockEntitiesContainer.classList.remove('d-none');
                     strategyField.classList.remove('d-none');
                     initCashField.classList.remove('d-none');
                     duringField.classList.remove('d-none');
-                    document.getElementById('dataSource').required = true;
-                    document.getElementById('market').required = true;
-                    document.getElementById('stockCode').required = true;
-                    document.getElementById('adjustType').required = true;
                     document.getElementById('strategy').required = true;
                     document.getElementById('initCash').required = true;
                     document.getElementById('during').required = true;
                 }
             });
+
+            // 数据源和市场联动逻辑
+            document.getElementById('newDataSource').addEventListener('change', function() {
+                const dataSource = this.value;
+                const marketSelect = document.getElementById('newMarket');
+
+                // 清空现有选项
+                marketSelect.innerHTML = '';
+
+                // 根据数据源添加对应的市场选项
+                if (dataSource === 'akshare') {
+                    // akshare支持港美市场
+                    marketSelect.appendChild(new Option('美股', 'us'));
+                    marketSelect.appendChild(new Option('港股', 'hk'));
+                } else if (dataSource === 'baostock') {
+                    // baostock只支持A股
+                    marketSelect.appendChild(new Option('A股', 'cn'));
+                } else if (dataSource === 'futu') {
+                    // futu支持港A市场
+                    marketSelect.appendChild(new Option('A股', 'cn'));
+                    marketSelect.appendChild(new Option('港股', 'hk'));
+                }
+            });
+
+            document.getElementById('newDataSource').dispatchEvent(new Event('change'));
+
+            document.getElementById('addStockButton').addEventListener('click', addStockEntity);
 
             // 表单提交处理
             document.getElementById('taskForm').addEventListener('submit', function(e) {
@@ -331,6 +443,19 @@
                     return;
                 }
 
+                // 验证定时表达式
+                const scheduleTime = document.getElementById('scheduleTime').value;
+                const cronValidation = validateCronExpression(scheduleTime);
+                if (!cronValidation.isValid) {
+                    showNotification(cronValidation.message, 'error');
+                    return;
+                }
+
+                if (stockEntities.length === 0) {
+                    showNotification('请至少添加一个股票实体', 'error');
+                    return;
+                }
+
                 const taskId = document.getElementById('taskId').value;
                 const taskData = {
                     // 使用正确的字段名称
@@ -338,22 +463,10 @@
                     type: document.getElementById('taskType').value,
                     description: document.getElementById('description').value,
                     schedule_time: document.getElementById('scheduleTime').value,
-                    enabled: true // 默认启用
+                    enabled: false
                 };
+                taskData.target_stocks = stockEntities;
 
-                // 添加target_stocks数组
-                if (document.getElementById('dataSource').required &&
-                    document.getElementById('market').required &&
-                    document.getElementById('stockCode').required &&
-                    document.getElementById('adjustType').required) {
-
-                    taskData.target_stocks = [{
-                        market: document.getElementById('market').value,
-                        data_source: document.getElementById('dataSource').value,
-                        stock_code: document.getElementById('stockCode').value,
-                        adjust_type: document.getElementById('adjustType').value
-                    }];
-                }
 
                 // 添加backtest_config对象
                 if (document.getElementById('strategy').required) {
@@ -385,6 +498,169 @@
 
         });
 
+        // 验证Cron表达式格式
+        function validateCronExpression(cronExpression) {
+            // Cron格式: 分 时 日 月 周
+            const parts = cronExpression.trim().split(/\s+/);
+
+            // 检查是否有5个部分
+            if (parts.length !== 5) {
+                return { isValid: false, message: '定时表达式格式错误，应为：分 时 日 月 周' };
+            }
+
+            // 验证分钟 (0-59)
+            const minuteRegex = /^(\*|\d{1,2}|\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2})$|^\d{1,2}(,\d{1,2})*$/;
+            if (!minuteRegex.test(parts[0])) {
+                return { isValid: false, message: '分钟格式错误，应为0-59之间的数字或通配符' };
+            }
+
+            // 验证小时 (0-23)
+            const hourRegex = /^(\*|\d{1,2}|\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2})$|^\d{1,2}(,\d{1,2})*$/;
+            if (!hourRegex.test(parts[1])) {
+                return { isValid: false, message: '小时格式错误，应为0-23之间的数字或通配符' };
+            }
+
+            // 验证日期 (1-31)
+            const dayRegex = /^(\*|\d{1,2}|\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}|L|W|LW)$|^\d{1,2}(,\d{1,2})*$/;
+            if (!dayRegex.test(parts[2])) {
+                return { isValid: false, message: '日期格式错误，应为1-31之间的数字或通配符' };
+            }
+
+            // 验证月份 (1-12)
+            const monthRegex = /^(\*|\d{1,2}|\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2})$|^\d{1,2}(,\d{1,2})*$/;
+            if (!monthRegex.test(parts[3])) {
+                return { isValid: false, message: '月份格式错误，应为1-12之间的数字或通配符' };
+            }
+
+            // 验证星期 (0-6 或 1-7)
+            const weekRegex = /^(\*|[0-7]|[0-7]-[0-7]|[0-7]\/[1-7]|MON|TUE|WED|THU|FRI|SAT|SUN)$|^([0-7](,[0-7])*)$/i;
+            if (!weekRegex.test(parts[4])) {
+                return { isValid: false, message: '星期格式错误，应为0-7之间的数字或英文缩写(MON-SUN)或通配符' };
+            }
+
+            return { isValid: true };
+        }
+
+        // 添加股票实体
+        function addStockEntity() {
+            const dataSource = document.getElementById('newDataSource').value;
+            const market = document.getElementById('newMarket').value;
+            const stockCode = document.getElementById('newStockCode').value;
+            const adjustType = document.getElementById('newAdjustType').value;
+
+            // 验证股票代码
+            if (!stockCode.trim()) {
+                showNotification('股票代码不能为空', 'error');
+                return;
+            }
+
+            // 根据市场类型验证股票代码前缀
+            let isValidPrefix = true;
+            let expectedPrefix = '';
+
+            if (market === 'us') {
+                // 美股必须以US.开头
+                isValidPrefix = stockCode.startsWith('US.');
+                expectedPrefix = 'US.';
+            } else if (market === 'hk') {
+                // 港股必须以HK.开头
+                isValidPrefix = stockCode.startsWith('HK.');
+                expectedPrefix = 'HK.';
+            } else if (market === 'cn') {
+                // A股必须以SH.或SZ.开头
+                isValidPrefix = stockCode.startsWith('SH.') || stockCode.startsWith('SZ.');
+                expectedPrefix = 'SH.或SZ.';
+            }
+            if (!isValidPrefix) {
+                showNotification(`股票代码格式错误，${market === 'us' ? '美股' : market === 'hk' ? '港股' : 'A股'}股票代码必须以${expectedPrefix}开头`, 'error');
+                return;
+            }
+
+
+            // 检查是否已存在相同的股票实体
+            const exists = stockEntities.some(entity =>
+                entity.data_source === dataSource &&
+                entity.market === market &&
+                entity.stock_code === stockCode
+            );
+
+            if (exists) {
+                showNotification('该股票实体已存在', 'error');
+                return;
+            }
+
+            // 添加到列表
+            const newEntity = {
+                market: market,
+                data_source: dataSource,
+                stock_code: stockCode,
+                adjust_type: adjustType
+            };
+
+            stockEntities.push(newEntity);
+
+            // 更新UI
+            renderStockEntities();
+
+            // 清空输入框
+            document.getElementById('newStockCode').value = '';
+
+            showNotification('股票实体添加成功', 'success');
+        }
+
+        function removeStockEntity(index) {
+            stockEntities.splice(index, 1);
+            renderStockEntities();
+            showNotification('股票实体删除成功', 'success');
+        }
+
+        function renderStockEntities() {
+            const tableBody = document.getElementById('stockEntitiesTableBody');
+            const noStockEntitiesDiv = document.getElementById('noStockEntities');
+
+            tableBody.innerHTML = '';
+
+            if (stockEntities.length > 0) {
+                noStockEntitiesDiv.classList.add('d-none');
+
+                stockEntities.forEach((entity, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${entity.data_source}</td>
+                        <td>${getMarketDisplay(entity.market)}</td>
+                        <td>${entity.stock_code}</td>
+                        <td>${getAdjustTypeDisplay(entity.adjust_type)}</td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeStockEntity(${index})")>删除</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                noStockEntitiesDiv.classList.remove('d-none');
+            }
+        }
+
+        // 获取市场显示名称
+        function getMarketDisplay(market) {
+            const marketMap = {
+                'us': '美股',
+                'cn': 'A股',
+                'hk': '港股'
+            };
+            return marketMap[market] || market;
+        }
+
+        // 获取复权类型显示名称
+        function getAdjustTypeDisplay(adjustType) {
+            const adjustTypeMap = {
+                'qfq': '前复权',
+                'hfq': '后复权',
+                'None': '不复权'
+            };
+            return adjustTypeMap[adjustType] || adjustType;
+        }
+
         // 加载所有任务
         function loadTasks() {
             showLoading(true);
@@ -396,6 +672,9 @@
 
                     const taskTableBody = document.getElementById('taskTableBody');
                     const noTasksDiv = document.getElementById('noTasks');
+                    const paginationContainer = document.getElementById('paginationContainer');
+                    const totalItems = document.getElementById('totalItems');
+
 
                     taskTableBody.innerHTML = '';
 
@@ -406,40 +685,29 @@
                             const dateB = new Date(b.create_time || 0).getTime();
                             return dateB - dateA; // 倒序排列
                         });
+                        totalTasks = sortedTasks;
 
-                        // 显示任务列表
+                        // 更新总记录数
+                        totalItems.textContent = totalTasks.length;
+                        // 显示任务列表和分页
                         noTasksDiv.classList.add('d-none');
                         document.getElementById('taskTableContainer').classList.remove('d-none');
+                        paginationContainer.classList.remove('d-none');
+                        currentPage = 1;
 
-                        sortedTasks.forEach(task => {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td>${task.id}</td>
-                                <td>${task.name}</td>
-                                <td>${taskTypeDisplay(task.type)}</td>
-                                <td>${task.schedule_time}</td>
-                                <td>
-                                    <span class="badge ${task.enabled ? 'badge-success' : 'badge-danger'}">
-                                        ${task.enabled ? '启用' : '禁用'}
-                                    </span>
-                                </td>
-                                <td>${formatDate(task.create_time)}</td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-primary btn-sm" onclick="editTask('${task.id}')">编辑</button>
-                                        <button class="btn ${task.enabled ? 'btn-warning' : 'btn-success'} btn-sm" onclick="toggleTask('${task.id}', ${!task.enabled})">
-                                            ${task.enabled ? '禁用' : '启用'}
-                                        </button>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.id}')">删除</button>
-                                    </div>
-                                </td>
-                            `;
-                            taskTableBody.appendChild(row);
-                        });
+                        // 渲染当前页的数据
+                        renderCurrentPage();
+                        // 生成分页按钮
+                        renderPagination();
                     } else {
-                        // 显示无数据提示
+                        totalTasks = [];
+
+                        // 显示无数据提示，隐藏分页
                         noTasksDiv.classList.remove('d-none');
                         document.getElementById('taskTableContainer').classList.add('d-none');
+                        paginationContainer.classList.add('d-none');
+                        totalItems.textContent = '0';
+
                     }
                 })
                 .catch(error => {
@@ -448,6 +716,115 @@
                     console.error('Error loading tasks:', error);
                 });
         }
+
+        // 渲染当前页的数据
+        function renderCurrentPage() {
+            const taskTableBody = document.getElementById('taskTableBody');
+            taskTableBody.innerHTML = '';
+
+            // 计算当前页的数据范围
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalTasks.length);
+            const currentPageTasks = totalTasks.slice(startIndex, endIndex);
+
+            // 渲染当前页的数据
+            currentPageTasks.forEach(task => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${task.id}</td>
+                    <td>${task.name}</td>
+                    <td>${taskTypeDisplay(task.type)}</td>
+                    <td>${task.schedule_time}</td>
+                    <td>
+                        <span class="badge ${task.enabled ? 'badge-success' : 'badge-danger'}">
+                            ${task.enabled ? '启用' : '禁用'}
+                        </span>
+                    </td>
+                    <td>${formatDate(task.create_time)}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-primary btn-sm" onclick="editTask('${task.id}')">编辑</button>
+                            <button class="btn ${task.enabled ? 'btn-warning' : 'btn-success'} btn-sm" onclick="toggleTask('${task.id}', ${!task.enabled})")>
+                                ${task.enabled ? '禁用' : '启用'}
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.id}')">删除</button>
+                        </div>
+                    </td>
+                `;
+                taskTableBody.appendChild(row);
+            });
+        }
+
+        // 渲染分页按钮
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+
+            // 计算总页数
+            const totalPages = Math.ceil(totalTasks.length / pageSize);
+
+            // 首页按钮
+            const firstPageItem = document.createElement('li');
+            firstPageItem.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            firstPageItem.innerHTML = `<a class="page-link" href="javascript:void(0)" onclick="goToPage(1)">首页</a>`;
+            pagination.appendChild(firstPageItem);
+
+            // 上一页按钮
+            const prevPageItem = document.createElement('li');
+            prevPageItem.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevPageItem.innerHTML = `<a class="page-link" href="javascript:void(0)" onclick="goToPage(${currentPage - 1})">&laquo;</a>`;
+            pagination.appendChild(prevPageItem);
+
+            // 页码按钮 - 显示当前页附近的页码
+            const maxVisiblePages = 5;
+            const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            // 调整起始页，确保能显示maxVisiblePages个页码
+            const adjustedStartPage = Math.max(1, endPage - maxVisiblePages + 1);
+
+            for (let i = adjustedStartPage; i <= endPage; i++) {
+                const pageItem = document.createElement('li');
+                pageItem.className = `page-item ${currentPage === i ? 'active' : ''}`;
+                pageItem.innerHTML = `<a class="page-link" href="javascript:void(0)" onclick="goToPage(${i})">${i}</a>`;
+                pagination.appendChild(pageItem);
+            }
+
+            // 下一页按钮
+            const nextPageItem = document.createElement('li');
+            nextPageItem.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextPageItem.innerHTML = `<a class="page-link" href="javascript:void(0)" onclick="goToPage(${currentPage + 1})">&raquo;</a>`;
+            pagination.appendChild(nextPageItem);
+
+            // 末页按钮
+            const lastPageItem = document.createElement('li');
+            lastPageItem.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            lastPageItem.innerHTML = `<a class="page-link" href="javascript:void(0)" onclick="goToPage(${totalPages})")>末页</a>`;
+            pagination.appendChild(lastPageItem);
+        }
+
+        // 跳转到指定页
+        function goToPage(page) {
+            // 确保页码在有效范围内
+            const totalPages = Math.ceil(totalTasks.length / pageSize);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderCurrentPage();
+                renderPagination();
+            }
+        }
+
+        // 初始化分页相关事件
+        function initPagination() {
+            // 监听每页显示数量变化
+            document.getElementById('pageSize').addEventListener('change', function() {
+                pageSize = parseInt(this.value);
+                currentPage = 1; // 重置到第一页
+                renderCurrentPage();
+                renderPagination();
+            });
+        }
+
 
         // 创建任务
         function createTask(taskData) {
@@ -511,12 +888,11 @@
 
                     // 填充target_stocks数据
                     if (task.target_stocks && task.target_stocks.length > 0) {
-                        const stockInfo = task.target_stocks[0];
-                        document.getElementById('dataSource').value = stockInfo.data_source || '';
-                        document.getElementById('market').value = stockInfo.market || '';
-                        document.getElementById('stockCode').value = stockInfo.stock_code || '';
-                        document.getElementById('adjustType').value = stockInfo.adjust_type || 'qfq';
+                        stockEntities = [...task.target_stocks];
+                    } else {
+                        stockEntities = [];
                     }
+                    renderStockEntities();
 
                     // 填充backtest_config数据
                     if (task.backtest_config) {
@@ -716,6 +1092,9 @@
             document.getElementById('taskId').value = '';
             document.getElementById('form-title').textContent = '创建定时任务';
             document.getElementById('submitButton').textContent = '创建任务';
+            // 清空股票实体列表
+            stockEntities = [];
+            renderStockEntities();
         }
 
         // 显示加载状态
