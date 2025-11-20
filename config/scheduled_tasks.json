@@ -4,7 +4,7 @@
     "type": "backtest",
     "description": "12",
     "schedule_time": "0 0 0 0 0",
-    "enabled": true,
+    "enabled": false,
     "target_stocks": [
       {
         "market": "us",
@@ -20,7 +20,7 @@
     },
     "id": "task_20251119210530",
     "create_time": "2025-11-19 21:05:30",
-    "update_time": "2025-11-19 21:42:55"
+    "update_time": "2025-11-20 12:53:49"
   },
   {
     "name": "撒地方过后就哭了",
@@ -43,6 +43,81 @@
     },
     "id": "task_20251119211159",
     "create_time": "2025-11-19 21:11:59",
-    "update_time": "2025-11-19 21:42:55"
+    "update_time": "2025-11-20 12:53:49"
+  },
+  {
+    "name": "sadfasd",
+    "type": "backtest",
+    "description": "sdafadsfa",
+    "schedule_time": "0 0 0 0 0",
+    "enabled": false,
+    "target_stocks": [
+      {
+        "market": "cn",
+        "data_source": "baostock",
+        "stock_code": "US.IVV",
+        "adjust_type": "qfq"
+      },
+      {
+        "market": "cn",
+        "data_source": "futu",
+        "stock_code": "US.IVV",
+        "adjust_type": "None"
+      }
+    ],
+    "backtest_config": {
+      "strategy": "EnhancedVolumeStrategy",
+      "init_cash": 5000000,
+      "during": 1460
+    },
+    "id": "task_20251120115150",
+    "create_time": "2025-11-20 11:51:50",
+    "update_time": "2025-11-20 12:53:49"
+  },
+  {
+    "name": "sadfadsfa",
+    "type": "backtest",
+    "description": "阿斯顿发送到",
+    "schedule_time": "0 8 * * 1-6",
+    "enabled": true,
+    "target_stocks": [
+      {
+        "market": "us",
+        "data_source": "akshare",
+        "stock_code": "US.IVV",
+        "adjust_type": "qfq"
+      }
+    ],
+    "backtest_config": {
+      "strategy": "EnhancedVolumeStrategy",
+      "init_cash": 5000000,
+      "during": 1460
+    },
+    "id": "task_20251120121153",
+    "create_time": "2025-11-20 12:11:53",
+    "update_time": "2025-11-20 12:53:49"
+  },
+  {
+    "name": "撒的发撒的发多少发",
+    "type": "backtest",
+    "description": "是大法师的",
+    "schedule_time": "0 0 0 0 0",
+    "enabled": true,
+    "target_stocks": [
+      {
+        "market": "us",
+        "data_source": "akshare",
+        "stock_code": "US.APPL",
+        "adjust_type": "qfq"
+      }
+    ],
+    "backtest_config": {
+      "strategy": "EnhancedVolumeStrategy",
+      "init_cash": 5000000,
+      "during": 1460
+    },
+    "id": "task_20251120125338",
+    "create_time": "2025-11-20 12:53:38",
+    "update_time": "2025-11-20 12:53:49"
   }
 ]
