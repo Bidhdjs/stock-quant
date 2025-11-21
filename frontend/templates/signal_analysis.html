@@ -23,6 +23,7 @@
                                 <a class="nav-link" href="/#results">历史结果</a>
                                 <a class="nav-link" href="/signal_analysis">信号分析</a>
                                 <a class="nav-link active" href="/strategy_code">策略管理</a>
+                                <a class="nav-link" href="/schedule">定时任务</a>
                             </div>
                             <a href="https://github.com/zhaoxusun/stock-quant" target="_blank" class="btn btn-outline-light btn-sm github-link">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16">
@@ -175,6 +176,9 @@
                     </div>
                 </div>
             </div>
+        </div>
+        <div id="notification" class="notification position-fixed top-20 right-5 p-4 rounded shadow-lg z-50 transform transition-all duration-300 translate-x-full opacity-0">
+            <div id="notificationMessage"></div>
         </div>
     </div>
 
@@ -522,18 +526,18 @@
                     document.getElementById('totalSignalResults').textContent = data.data.summary.total_signals;
 
                     // 显示成功通知
-                    showNotification('success', `信号分析完成，共找到 ${data.data.summary.total_signals} 条信号`);
+                    showNotification(`信号分析完成，共找到 ${data.data.summary.total_signals} 条信号`);
                 } else {
                     document.getElementById('signalsTable').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">${data.message || '分析失败'}</td></tr>`;
                     // 显示错误通知
-                    showNotification('error', data.message || '信号分析失败');
+                    showNotification(data.message || '信号分析失败', 'error');
                 }
             })
             .catch(error => {
                 console.error('分析信号失败:', error);
                 document.getElementById('signalsTable').innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">分析失败</td></tr>';
                 // 显示错误通知
-                showNotification('error', '信号分析过程中发生错误');
+                showNotification('信号分析过程中发生错误', 'error');
             });
         }
 
@@ -694,126 +698,34 @@
         }
 
         // 消息通知函数
-        function showNotification(type, message) {
-            try {
-                if (!document || !document.body) {
-                    alert(`${type === 'error' ? '错误' : type === 'success' ? '成功' : '信息'}: ${message}`);
-                    return;
-                }
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationMessage = document.getElementById('notificationMessage');
+            // 重置通知状态并确保正确的定位样式
+            notification.style.display = 'none';
+            notification.style.position = 'fixed';
+            notification.style.top = '1px';  // 距离顶部20px
+            notification.style.right = '1px';  // 距离右侧20px
+            notification.style.zIndex = '1050';  // 确保在最上层
+            // 设置消息内容和类型
+            notificationMessage.textContent = message;
+            notification.className = `notification position-fixed top-5 right-5 p-3 rounded shadow-lg z-50 ${type}`;
 
-                // 首先尝试找到标题栏元素
-                const navbar = document.querySelector('.navbar.navbar-dark.bg-primary');
-
-                // 创建通知元素
-                const notification = document.createElement('div');
-
-                if (navbar) {
-                    // 如果找到了标题栏，将通知框放置在标题栏内
-                    notification.className = `notification ${type} absolute z-50`;
-
-                    // 使用与导航栏一致的样式
-                    notification.style.top = '0';
-                    notification.style.right = '0';
-                    notification.style.height = '100%';
-                    notification.style.padding = '0 20px';
-                    notification.style.display = 'flex';
-                    notification.style.alignItems = 'center';
-                    notification.style.justifyContent = 'center';
-                    notification.style.color = 'white';
-                    notification.style.fontSize = '0.9rem';
-                    notification.style.transition = 'all 0.3s ease';
-                    notification.style.boxShadow = 'none'; // 与导航栏保持一致，不使用阴影
-                    notification.style.width = '100%'; // 确保宽度充满
+            // 显示通知
+            notification.style.display = 'block';
 
 
-                    // 根据类型设置左边框颜色，而不是背景色，以保持导航栏整体外观
-                    notification.style.borderLeft = '3px solid';
-                    if (type === 'success') {
-                        notification.style.borderLeftColor = 'rgba(40, 167, 69, 1)';
-                    } else if (type === 'error') {
-                        notification.style.borderLeftColor = 'rgba(220, 53, 69, 1)';
-                    } else {
-                        notification.style.borderLeftColor = 'rgba(23, 162, 184, 1)';
-                    }
-
-                    // 添加到标题栏，保持标题栏的吸顶效果
-                    navbar.appendChild(notification);
-                } else {
-                    // 如果找不到标题栏，使用降级方案（页面顶部居中，样式与导航栏相似）
-                    notification.className = `notification ${type} fixed top-0 left-0 right-0 z-50 bg-primary`;
-                    notification.style.padding = '10px 20px';
-                    notification.style.textAlign = 'center';
-                    notification.style.color = 'white';
-                    notification.style.fontSize = '0.9rem';
-                    notification.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-                    notification.style.transition = 'all 0.3s ease';
-
-                    // 添加到body
-                    document.body.appendChild(notification);
-                }
-
-                notification.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center;">
-                        <span style="margin-right: 6px;">${type === 'success' ? '✓' : '✗'}</span>
-                        <span>${message}</span>
-                    </div>
-                `;
-
-                // 添加悬浮效果
-                notification.addEventListener('mouseenter', () => {
-                    if (navbar) {
-                        // 标题栏内的通知框，鼠标悬停时可以略微增加透明度
-                        notification.style.opacity = '0.95';
-                    } else {
-                        // 降级方案的通知框悬浮效果
-                        notification.style.transform = 'translateY(-2px)';
-                        notification.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                    }
-                });
-                notification.addEventListener('mouseleave', () => {
-                    if (navbar) {
-                        // 恢复透明度
-                        notification.style.opacity = '1';
-                    } else {
-                        // 恢复降级方案的通知框样式
-                        notification.style.transform = 'translateY(0)';
-                        notification.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                    }
-                });
-
-                // 确保可见
-                notification.style.opacity = '0';
-
-                // 强制重排
-                notification.offsetHeight;
-
-                // 显示通知
-                notification.style.opacity = '1';
-
-                // 自动关闭
-                setTimeout(() => {
-                    notification.style.opacity = '0';
-                    // 移除元素
-                    setTimeout(() => {
-                        if (navbar && navbar.contains(notification)) {
-                            navbar.removeChild(notification);
-                        } else if (document.body.contains(notification)) {
-                            document.body.removeChild(notification);
-                        }
-                    }, 300);
-                }, 1500);
-            } catch (error) {
-                console.error('显示通知时发生错误:', error);
-                // 降级方案：使用浏览器原生alert
-                alert(`${type === 'error' ? '错误' : type === 'success' ? '成功' : '信息'}: ${message}`);
-            }
+            // 3秒后隐藏通知
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
         }
 
 
         // 下载HTML报告
         function downloadResultsAsHTML() {
             if (!allSignalsData || allSignalsData.length === 0) {
-                showNotification('error', '没有可下载的信号数据');
+                showNotification('没有可下载的信号数据', 'error');
                 return;
             }
 
@@ -873,15 +785,15 @@
                     URL.revokeObjectURL(url);
 
                     // 显示成功通知
-                    showNotification('success', 'HTML报告下载成功');
+                    showNotification('HTML报告下载成功');
 
                 } else {
-                    showNotification('error', `生成HTML报告失败: ${data.message}`);
+                    showNotification(`生成HTML报告失败: ${data.message}`, 'error');
                 }
             })
             .catch(error => {
                 console.error('生成HTML报告时发生错误:', error);
-                showNotification('error', '生成HTML报告时发生网络错误');
+                showNotification('生成HTML报告时发生网络错误', 'error');
             });
         }
     </script>

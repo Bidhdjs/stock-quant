@@ -10,3 +10,4 @@ baostock
 chardet
 flask
 flask-cors
+schedule

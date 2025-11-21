@@ -60,7 +60,7 @@ def get_hk_stock_history(stock_code: str, start_date: str, end_date: str, adjust
 
 
 def get_single_hk_stock_history(stock_code: str, start_date: str, end_date: str,
-                                adjust_type: str = 'qfq', output_dir: str = 'akshare') -> bool:
+                                adjust_type: str = 'qfq', output_dir: str = 'akshare'):
     """
     获取单只港股的历史数据并保存到CSV
     """
@@ -81,18 +81,18 @@ def get_single_hk_stock_history(stock_code: str, start_date: str, end_date: str,
             os.makedirs(output_path, exist_ok=True)
 
             # 保存到CSV
-            filename = os.path.join(output_path,
-                                    f"{stock_code}_{stock_name}_{start_date_formatted}_{end_date_formatted}.csv")
+            csv_name = f"{stock_code}_{stock_name}_{start_date_formatted}_{end_date_formatted}.csv"
+            filename = os.path.join(output_path, csv_name)
             save_to_csv(df.round(2), filename)
 
             logger.info(f"数据已成功保存至: {filename}")
-            return True
+            return True, csv_name
         except Exception as e:
             logger.error(f"保存港股 {stock_code} 数据时出错: {str(e)}")
-            return False
+            return False, None
     else:
         logger.warning(f"未能获取港股 {stock_code} 的数据")
-        return False
+        return False, None
 
 
 def get_us_history(stock_code: str, start_date: str, end_date: str) -> DataFrame:
@@ -106,6 +106,7 @@ def get_us_history(stock_code: str, start_date: str, end_date: str) -> DataFrame
 
     返回:
         DataFrame: 标准化后的历史数据
+        csv_name: str = None
     """
     try:
         logger.info(f"开始获取(US.{stock_code}) 历史数据...")
@@ -145,7 +146,7 @@ def get_us_history(stock_code: str, start_date: str, end_date: str) -> DataFrame
 
 
 def get_single_us_history(stock_code: str, start_date: str, end_date: str,
-                              output_dir: str = 'akshare') -> bool:
+                              output_dir: str = 'akshare'):
     """
     获取单只美国历史数据并保存到CSV
 
@@ -157,6 +158,7 @@ def get_single_us_history(stock_code: str, start_date: str, end_date: str,
 
     返回:
         bool: 操作是否成功
+        csv_name: str = None
     """
     # 获取历史数据
     df = get_us_history(stock_code, start_date, end_date)
@@ -175,18 +177,18 @@ def get_single_us_history(stock_code: str, start_date: str, end_date: str,
             os.makedirs(output_path, exist_ok=True)
 
             # 保存到CSV
-            filename = os.path.join(output_path,
-                                    f"US.{stock_code}_{stock_name}_{start_date_formatted}_{end_date_formatted}.csv")
+            csv_name = f"US.{stock_code}_{stock_name}_{start_date_formatted}_{end_date_formatted}.csv"
+            filename = os.path.join(output_path, csv_name)
             save_to_csv(df.round(2), filename)
 
             logger.info(f"数据已成功保存至: {filename}")
-            return True
+            return True, csv_name
         except Exception as e:
             logger.error(f"保存 {stock_code} 数据时出错: {str(e)}")
-            return False
+            return False, None
     else:
         logger.warning(f"未能获取 {stock_code} 的数据")
-        return False
+        return False, None
 
 
 if __name__ == "__main__":
