@@ -124,7 +124,7 @@
     "name": "test",
     "type": "backtest",
     "description": "test",
-    "schedule_time": "30 11 0 0 1-7",
+    "schedule_time": "33 16 0 0 1-7",
     "enabled": true,
     "target_stocks": [
       {
@@ -150,10 +150,10 @@
     "update_time": "2025-11-20 20:53:33"
   },
   {
-    "name": "test",
+    "name": "test-single",
     "type": "backtest",
     "description": "test",
-    "schedule_time": "30 11 0 0 1-7",
+    "schedule_time": "33 16 0 0 1-7",
     "enabled": true,
     "target_stocks": [
       {

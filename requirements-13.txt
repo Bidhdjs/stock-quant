@@ -11,3 +11,4 @@ chardet
 flask
 flask-cors
 schedule
+weasyprint

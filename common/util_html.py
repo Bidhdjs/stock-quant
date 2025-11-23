@@ -1,7 +1,9 @@
-import os
-
 from common.logger import create_log
 import datetime
+from weasyprint import HTML
+from weasyprint.css import CSS
+import os
+from bs4 import BeautifulSoup
 
 logger = create_log("util_html")
 
@@ -210,7 +212,6 @@ def signals_to_html(signals_data, filters=None, summary=None):
 
 def save_clean_html(html_content, task_id):
     # 后续工作流中可以使用改方法，调用generate_html_report接口获取返回值的html_content值，在调用该方法生成html文件，拓展通知功能（html作为附件一起发送）
-    output_path = f'/Users/romanzhao/PycharmProjects/stock-quant/frontend/templates/{task_id}_fixed_signal_analysis.html'
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
     output_path = os.path.join(project_root, f'{task_id}_fixed_signal_analysis.html')
@@ -220,29 +221,218 @@ def save_clean_html(html_content, task_id):
     return output_path
 
 
+
+def html_to_pdf(html_content, output_pdf_path):
+    """
+    背景加宽适配表格！同步滚动无错位，视觉100%对齐
+    :param html_content: 输入HTML内容字符串
+    :param output_pdf_path: 输出PDF路径
+    """
+    try:
+        # 核心调整：背景宽度≥表格最小宽度，同步滚动，精确控制边距
+        fixed_css = CSS(string="""
+            /* 1. 全局重置：确保无默认边距和填充 */
+            * {
+                margin: 0 !important;
+                padding: 0 !important;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                background-color: #2a2a2a;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                overflow-x: hidden;
+            }
+
+            /* 2. 背景容器：完全填充页面，无偏移 */
+            .bg-wrapper {
+                width: 100%;
+                min-width: 600px;
+                background-color: #2a2a2a;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* 3. 内容容器：精确控制内边距，避免偏移 */
+            .content-wrapper {
+                width: 100%;
+                padding: 15px !important;
+                box-sizing: border-box;
+                color: #e0e0e0;
+                margin: 0 !important;
+            }
+
+            /* 4. 表格滚动容器：确保无额外边距 */
+            .table-wrapper {
+                width: 100%;
+                overflow-x: auto;
+                margin: 15px 0 !important;
+                padding: 0 !important;
+            }
+
+            /* 5. 表格：精确控制宽度和边距 */
+            table {
+                min-width: 600px;
+                width: 100%;  /* 改为100%以完全填充容器 */
+                border-collapse: collapse;
+                word-wrap: break-word;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* 6. 列宽精确控制 */
+            th:nth-child(1), td:nth-child(1) { width: 13%; }
+            th:nth-child(2), td:nth-child(2) { width: 13%; }
+            th:nth-child(3), td:nth-child(3) { width: 8%; }
+            th:nth-child(4), td:nth-child(4) { width: 32%; }
+            th:nth-child(5), td:nth-child(5) { width: 10%; }
+            th:nth-child(6), td:nth-child(6) { width: 24%; }
+
+            /* 其他样式调整 */
+            h1, h2, h3 {
+                text-align: center;
+                margin: 18px 0 !important;
+                color: #fff;
+                font-size: 1.4rem;
+            }
+
+            .stats-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: center;
+                margin: 20px 0 !important;
+                padding: 0 !important;
+            }
+
+            .stat-box {
+                min-width: 45%;
+                text-align: center;
+                padding: 10px !important;
+                background: #3a3a3a;
+                border-radius: 8px;
+                margin: 0 !important;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+                font-weight: bold;
+                color: #fff;
+            }
+
+            th, td {
+                border: 1px solid #888;
+                padding: 8px 6px !important;
+                font-size: 13px;
+                text-align: left;
+                vertical-align: middle;
+            }
+
+            th {
+                background-color: #4a4a4a;
+                color: #fff;
+            }
+
+            /* 确保没有默认边距和缩进 */
+            tbody, thead, tr {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+        """)
+
+        # 重构结构：给所有内容套「加宽背景容器」
+        soup = BeautifulSoup(html_content, 'html.parser')
+
+        # 1. 创建新的body标签以确保干净的结构
+        new_body = soup.new_tag('body')
+
+        # 2. 创建加宽背景容器
+        bg_wrapper = soup.new_tag('div', attrs={'class': 'bg-wrapper'})
+
+        # 3. 创建内容容器
+        content_wrapper = soup.new_tag('div', attrs={'class': 'content-wrapper'})
+        bg_wrapper.append(content_wrapper)
+        new_body.append(bg_wrapper)
+
+        # 4. 把原内容全部移到内容容器中
+        for child in list(soup.body.children):
+            if child.name not in ['script', 'style']:  # 排除可能干扰的标签
+                content_wrapper.append(child)
+
+        # 5. 给表格套滚动容器
+        for table in content_wrapper.find_all('table'):
+            table_wrapper = soup.new_tag('div', attrs={'class': 'table-wrapper'})
+            table.wrap(table_wrapper)
+
+        # 6. 替换原body
+        soup.body.replace_with(new_body)
+
+        # 转换为字符串
+        modified_html = str(soup)
+
+        # 转换PDF：使用更精确的页面设置
+        # 由于直接使用内容而非文件路径，base_url设置为当前目录
+        html_obj = HTML(string=modified_html, base_url=os.getcwd())
+        html_obj.write_pdf(
+            output_pdf_path,
+            stylesheets=[fixed_css],
+            resolution=150,
+            presentational_hints=True,
+            # 关键：设置所有边距为0，并使用精确的页面大小
+            options={
+                'margin-top': '0mm',
+                'margin-right': '0mm',
+                'margin-bottom': '0mm',
+                'margin-left': '0mm',
+                'zoom': 1.0,  # 确保不缩放
+                'page-size': 'A4'  # 指定页面大小
+            }
+        )
+        print(f"✅ 转换成功！背景加宽对齐版PDF已保存到：{os.path.abspath(output_pdf_path)}")
+        return True
+    except Exception as e:
+        print(f"❌ 转换失败：{str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 if __name__ == "__main__":
     # 示例用法
-    sample_signals = [
-        {
-            'date': '2023-10-01',
-            'signal_type': 'buy',
-            'description': '买入信号',
-            'stock_info': '腾讯控股(00700)',
-            'data_source': 'futu',
-            'strategy_name': 'EnhancedVolumeStrategy'
-        },
-        {
-            'date': '2023-10-02',
-            'signal_type': 'sell',
-            'description': '卖出信号',
-            'stock_info': '阿里巴巴(09988)',
-            'data_source': 'futu',
-            'strategy_name': 'SingleVolumeStrategy'
-        }
-    ]
+    # sample_signals = [
+    #     {
+    #         'date': '2023-10-01',
+    #         'signal_type': 'buy',
+    #         'description': '买入信号',
+    #         'stock_info': '腾讯控股(00700)',
+    #         'data_source': 'futu',
+    #         'strategy_name': 'EnhancedVolumeStrategy'
+    #     },
+    #     {
+    #         'date': '2023-10-02',
+    #         'signal_type': 'sell',
+    #         'description': '卖出信号',
+    #         'stock_info': '阿里巴巴(09988)',
+    #         'data_source': 'futu',
+    #         'strategy_name': 'SingleVolumeStrategy'
+    #     }
+    # ]
+    #
+    # html = signals_to_html(sample_signals)
+    # print(html)
+    #
+    # content = "\n<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>信号分析报告 - 2025-11-12 12:47:43</title>\n    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css\">\n    <style>\n        body { background-color: #2a2a2a; }\n        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }\n        .header { text-align: center; margin-bottom: 30px; }\n        .stats-container { display: flex; justify-content: space-around; margin-bottom: 30px; flex-wrap: wrap; }\n        .stat-box {\n            text-align: center;\n            padding: 15px;\n            background: #3a3a3a;\n            border-radius: 8px;\n            box-shadow: 0 4px 8px rgba(0,0,0,0.3);\n            margin: 10px;\n            flex: 1;\n            min-width: 200px;\n            color: #e0e0e0;\n        }\n        .stat-value { font-size: 1.8rem; font-weight: bold; margin: 5px 0; }\n        .price-up { color: #ff6b6b; }\n        .price-down { color: #4ecdc4; }\n        table {\n            width: 100%;\n            border-collapse: collapse;\n            background: #3a3a3a;\n            border-radius: 8px;\n            overflow: hidden;\n            box-shadow: 0 4px 8px rgba(0,0,0,0.3);\n            color: #e0e0e0;\n        }\n        th, td {\n            padding: 12px;\n            text-align: left;\n            border-bottom: 1px solid #555;\n        }\n        th {\n            background-color: #4a4a4a;\n            color: #fff;\n            font-weight: 600;\n        }\n        tr:hover {\n            background-color: #404040;\n        }\n        .filters {\n            background: #3a3a3a;\n            padding: 20px;\n            border-radius: 8px;\n            margin-bottom: 20px;\n            box-shadow: 0 4px 8px rgba(0,0,0,0.3);\n            color: #e0e0e0;\n        }\n        .timestamp { text-align: right; color: #999; margin-top: 10px; font-size: 0.9rem; }\n        h1, h2, h3 { color: #fff; }\n        strong { color: #ccc; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>信号分析报告</h1>\n            <p>此报告包含根据筛选条件分析的信号数据</p>\n        </div>\n\n        <div class=\"filters\">\n            <h3>筛选条件</h3>\n            <div class=\"row\">\n                <div class=\"col-md-4\">\n                    <strong>策略：</strong>全部策略\n                </div>\n                <div class=\"col-md-4\">\n                    <strong>股票：</strong>全部股票\n                </div>\n                <div class=\"col-md-4\">\n                    <strong>信号类型：</strong>全部类型\n                </div>\n            </div>\n            <div class=\"row mt-2\">\n                <div class=\"col-md-6\">\n                    <strong>起始时间：</strong>2025-11-05\n                </div>\n                <div class=\"col-md-6\">\n                    <strong>结束时间：</strong>2025-11-12\n                </div>\n            </div>\n        </div>\n\n        <div class=\"stats-container\">\n            <div class=\"stat-box\">\n                <div>总信号数</div>\n                <div class=\"stat-value\">2</div>\n            </div>\n            <div class=\"stat-box\">\n                <div>买入信号</div>\n                <div class=\"stat-value price-up\">2</div>\n            </div>\n            <div class=\"stat-box\">\n                <div>卖出信号</div>\n                <div class=\"stat-value price-down\">0</div>\n            </div>\n            <div class=\"stat-box\">\n                <div>涉及股票数</div>\n                <div class=\"stat-value\">1</div>\n            </div>\n        </div>\n\n        <h2>信号详情</h2>\n        <table>\n            <thead>\n                <tr>\n                    <th>日期</th>\n                    <th>信号类型</th>\n                    <th>描述</th>\n                    <th>股票信息</th>\n                    <th>数据源</th>\n                    <th>策略</th>\n                </tr>\n            </thead>\n            <tbody>\n                <tr>\n                    <td>2025-11-05</td>\n                    <td class='price-up'>normal_buy</td>\n                    <td>-</td>\n                    <td>HK.09626_哔哩哔哩-W_20211108_20251105</td>\n                    <td>futu</td>\n                    <td>EnhancedVolumeStrategy</td>\n                </tr>\n                <tr>\n                    <td>2025-11-05</td>\n                    <td class='price-up'>normal_buy</td>\n                    <td>-</td>\n                    <td>HK.09626_哔哩哔哩-W_20211108_20251105</td>\n                    <td>futu</td>\n                    <td>SingleVolumeStrategy</td>\n                </tr>\n            </tbody>\n        </table>\n\n        <div class=\"timestamp\">\n            报告生成时间：2025-11-12 12:47:43\n        </div>\n    </div>\n</body>\n</html>\n"
+    # save_clean_html(content,'test_task_id')
+    # 示例：直接从文件读取HTML内容作为示例
+    html_file_path = '/Users/romanzhao/PycharmProjects/stock-quant/task_20251121172103_fixed_signal_analysis.html'
+    with open(html_file_path, 'r', encoding='utf-8') as f:
+        sample_html_content = f.read()
 
-    html = signals_to_html(sample_signals)
-    print(html)
+    output_pdf = "signal_report_bg_wid1e.pdf"  # 背景加宽版PDF
+    html_to_pdf(sample_html_content, output_pdf)
 
-    content = "\n<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>信号分析报告 - 2025-11-12 12:47:43</title>\n    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css\">\n    <style>\n        body { background-color: #2a2a2a; }\n        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }\n        .header { text-align: center; margin-bottom: 30px; }\n        .stats-container { display: flex; justify-content: space-around; margin-bottom: 30px; flex-wrap: wrap; }\n        .stat-box {\n            text-align: center;\n            padding: 15px;\n            background: #3a3a3a;\n            border-radius: 8px;\n            box-shadow: 0 4px 8px rgba(0,0,0,0.3);\n            margin: 10px;\n            flex: 1;\n            min-width: 200px;\n            color: #e0e0e0;\n        }\n        .stat-value { font-size: 1.8rem; font-weight: bold; margin: 5px 0; }\n        .price-up { color: #ff6b6b; }\n        .price-down { color: #4ecdc4; }\n        table {\n            width: 100%;\n            border-collapse: collapse;\n            background: #3a3a3a;\n            border-radius: 8px;\n            overflow: hidden;\n            box-shadow: 0 4px 8px rgba(0,0,0,0.3);\n            color: #e0e0e0;\n        }\n        th, td {\n            padding: 12px;\n            text-align: left;\n            border-bottom: 1px solid #555;\n        }\n        th {\n            background-color: #4a4a4a;\n            color: #fff;\n            font-weight: 600;\n        }\n        tr:hover {\n            background-color: #404040;\n        }\n        .filters {\n            background: #3a3a3a;\n            padding: 20px;\n            border-radius: 8px;\n            margin-bottom: 20px;\n            box-shadow: 0 4px 8px rgba(0,0,0,0.3);\n            color: #e0e0e0;\n        }\n        .timestamp { text-align: right; color: #999; margin-top: 10px; font-size: 0.9rem; }\n        h1, h2, h3 { color: #fff; }\n        strong { color: #ccc; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>信号分析报告</h1>\n            <p>此报告包含根据筛选条件分析的信号数据</p>\n        </div>\n\n        <div class=\"filters\">\n            <h3>筛选条件</h3>\n            <div class=\"row\">\n                <div class=\"col-md-4\">\n                    <strong>策略：</strong>全部策略\n                </div>\n                <div class=\"col-md-4\">\n                    <strong>股票：</strong>全部股票\n                </div>\n                <div class=\"col-md-4\">\n                    <strong>信号类型：</strong>全部类型\n                </div>\n            </div>\n            <div class=\"row mt-2\">\n                <div class=\"col-md-6\">\n                    <strong>起始时间：</strong>2025-11-05\n                </div>\n                <div class=\"col-md-6\">\n                    <strong>结束时间：</strong>2025-11-12\n                </div>\n            </div>\n        </div>\n\n        <div class=\"stats-container\">\n            <div class=\"stat-box\">\n                <div>总信号数</div>\n                <div class=\"stat-value\">2</div>\n            </div>\n            <div class=\"stat-box\">\n                <div>买入信号</div>\n                <div class=\"stat-value price-up\">2</div>\n            </div>\n            <div class=\"stat-box\">\n                <div>卖出信号</div>\n                <div class=\"stat-value price-down\">0</div>\n            </div>\n            <div class=\"stat-box\">\n                <div>涉及股票数</div>\n                <div class=\"stat-value\">1</div>\n            </div>\n        </div>\n\n        <h2>信号详情</h2>\n        <table>\n            <thead>\n                <tr>\n                    <th>日期</th>\n                    <th>信号类型</th>\n                    <th>描述</th>\n                    <th>股票信息</th>\n                    <th>数据源</th>\n                    <th>策略</th>\n                </tr>\n            </thead>\n            <tbody>\n                <tr>\n                    <td>2025-11-05</td>\n                    <td class='price-up'>normal_buy</td>\n                    <td>-</td>\n                    <td>HK.09626_哔哩哔哩-W_20211108_20251105</td>\n                    <td>futu</td>\n                    <td>EnhancedVolumeStrategy</td>\n                </tr>\n                <tr>\n                    <td>2025-11-05</td>\n                    <td class='price-up'>normal_buy</td>\n                    <td>-</td>\n                    <td>HK.09626_哔哩哔哩-W_20211108_20251105</td>\n                    <td>futu</td>\n                    <td>SingleVolumeStrategy</td>\n                </tr>\n            </tbody>\n        </table>\n\n        <div class=\"timestamp\">\n            报告生成时间：2025-11-12 12:47:43\n        </div>\n    </div>\n</body>\n</html>\n"
-    save_clean_html(content,'test_task_id')
+
+
+
+
