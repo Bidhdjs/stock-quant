@@ -133,6 +133,8 @@ if __name__ == "__main__":
 ```
 
 ![schedule_task](https://zhaoxusun.github.io/stock-quant/resource/img/schedule_task.png)
+![report_message_summary](https://zhaoxusun.github.io/stock-quant/resource/img/report_message_summary.png)
+![report_message_detail](https://zhaoxusun.github.io/stock-quant/resource/img/report_message_detail.png)
 
 ### 6. 策略管理
 

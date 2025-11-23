@@ -3,6 +3,7 @@ import time
 import json
 import requests
 from common.logger import create_log
+from common.util_html import html_to_pdf
 
 logger = create_log('wechat_notifier')
 
@@ -154,6 +155,43 @@ class WechatNotifier:
             logger.error(f"发送文件消息异常: {str(e)}")
             return False
 
+    def send_html_content_report(self, html_content, title="回测报告", description="", report_filename="report.pdf"):
+        """
+        发送HTML报告（直接使用HTML内容）
+        :param html_content: HTML内容字符串
+        :param title: 报告标题
+        :param description: 报告描述
+        :param report_filename: 生成的临时文件名（默认为report.pdf）
+        :return: 是否发送成功
+        """
+        if not self.webhook_url:
+            logger.error("企业微信webhook URL未在环境变量WECHAT_WEBHOOK_QUANT中配置")
+            return False
+
+        try:
+
+            # 先发送一个Markdown格式的说明消息
+            markdown_content = f"""# {title}
+
+            ## 描述
+            {description}
+
+            ## 时间
+            {time.strftime('%Y-%m-%d %H:%M:%S')}
+
+            PDF报告已作为附件发送，请查收。"""
+
+            self.send_markdown_message(markdown_content)
+
+            # 然后发送HTML文件作为附件
+            html_to_pdf(html_content, report_filename)
+            return self.send_file_message(report_filename)
+
+        except Exception as e:
+            logger.error(f"发送PDF内容报告异常: {str(e)}")
+            return False
+
+
     def send_html_report(self, html_file_path, title="回测报告", description=""):
         """
         发送HTML报告
@@ -195,6 +233,10 @@ def send_wechat_message(content, mentioned_list=None, mentioned_mobile_list=None
 def send_wechat_report(html_file_path, title="回测报告", description=""):
     """发送微信HTML报告的便捷函数"""
     return wechat_notifier.send_html_report(html_file_path, title, description)
+
+def send_wechat_report_pdf(html_content, title="回测报告", description="", report_filename="report.pdf"):
+    """发送微信HTML报告（直接使用HTML内容）的便捷函数"""
+    return wechat_notifier.send_html_content_report(html_content, title, description, report_filename)
 
 
 # if __name__ == '__main__':

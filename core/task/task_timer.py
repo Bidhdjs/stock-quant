@@ -11,7 +11,7 @@ from core.task.task_manager import TaskManager
 from core.strategy.strategy_manager import global_strategy_manager
 from core.quant.quant_manage import run_backtest_enhanced_volume_strategy
 import settings
-from core.notification.wechat_notifier import send_wechat_message, send_wechat_report
+from core.notification.wechat_notifier import send_wechat_message, send_wechat_report_pdf
 
 logger = create_log('task_timer')
 
@@ -120,10 +120,12 @@ def run_backtest(csv_path, backtest_config):
         return False
 
 
-def check_signals(target_stocks, task_id, days=365):
+def check_signals(target_stocks, task_id, days):
     """
     检查昨天买入信号
     """
+    logger.info(f"task_id: {task_id}")
+    logger.info(f"检查信号目标股票: {target_stocks}")
     logger.info(f"开始检查{days}天前信号")
 
     yesterday = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
@@ -175,9 +177,9 @@ def check_signals(target_stocks, task_id, days=365):
             logger.debug(f"信号: 股票={signal.get('stock_info')}, 日期={signal.get('date')}, "
                          f"信号类型={signal.get('signal_type')}, 策略={signal.get('strategy_name')}")
         html = signals_to_html(signals, filters, summary)
-        html_file = save_clean_html(html, task_id)
+        # html_file = save_clean_html(html, task_id)
         logger.info("成功检查昨天信号，并下载信号HTML完成")
-        return True, html_file
+        return True, html
 
     except Exception as e:
         logger.error(f"分析信号失败: {str(e)}")
@@ -219,15 +221,16 @@ def process_task(task):
 
         # 第三步：生成信号详情 - 这一步在run_backtest_enhanced_volume_strategy中已经自动处理
         # 信号会保存到signals目录，图表会保存到html目录
-        success, html_file = check_signals(target_stocks, task_id, days=365)
-        if not success or not html_file:
+        success, html_content = check_signals(target_stocks, task_id, days=180)
+        if not success or not html_content:
             logger.error(f"跳过股票处理，因为生成信号详情失败")
         else:
             logger.info(f"股票处理完成: {target_stocks}")
-            send_wechat_report(
-                html_file_path=html_file,
+            send_wechat_report_pdf(
+                html_content=html_content,
                 title=f"定时任务{task_id}信号详情",
-                description=f"{task}"
+                description=f"{task}",
+                report_filename=f"{task_id}_report.pdf"
             )
         logger.info(f"任务处理完成: {task_name} (ID: {task_id})")
     except Exception as e:
