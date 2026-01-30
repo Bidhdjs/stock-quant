@@ -1,4 +1,9 @@
 {
     "markdown.validate.enabled": true,
-    "commentTranslate.browse.mode": "contrast"
+    "commentTranslate.browse.mode": "contrast",
+    "python.testing.pytestArgs": [
+        "test"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }
