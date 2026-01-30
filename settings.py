@@ -69,3 +69,11 @@ US_SLIPPAGE = 0.3  # 滑点0.3美元
 # 交易本金
 INIT_CASH = 5000000  # 初始资金5000000港币
 
+
+# Data source fallback priority per market (higher priority first)
+DATA_SOURCE_PRIORITY = {
+    "US": ["yfinance", "akshare"],
+    "HK": ["akshare", "yfinance"],
+    "CN": ["baostock", "akshare"],
+    "DEFAULT": ["yfinance"],
+}

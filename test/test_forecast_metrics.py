@@ -40,8 +40,15 @@ def test_mape():
     assert np.isfinite(value)
 
 
-def test_smape():
+def test_nrmse():
     y_true = np.array([1.0, 2.0, 3.0])
     y_pred = np.array([1.1, 1.9, 3.2])
-    value = fm.smape(y_true, y_pred)
+    value = fm.nrmse(y_true, y_pred)
+    assert np.isfinite(value)
+
+
+def test_wape():
+    y_true = np.array([1.0, 2.0, 3.0])
+    y_pred = np.array([1.1, 1.9, 3.2])
+    value = fm.wape(y_true, y_pred)
     assert np.isfinite(value)

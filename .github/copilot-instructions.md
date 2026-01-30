@@ -70,7 +70,7 @@ venv/bin/python ./tools/search_engine.py "your search keywords"
 ## Project Lessons
 - AGENTS.md 等中文规则文件必须使用 UTF-8（带 BOM）保存，避免 PowerShell/编辑器默认编码导致乱码。
 - copilot-instructions.md 必须使用 UTF-8（带 BOM）保存，必要时用 python 直接写入避免乱码。
-
+- 虚拟环境命名为 data_analysis，避免与其他项目冲突。
 # Scratchpad
 
 - [X] 任务描述：执行 Sprint 1（数据源稳定 + mock-only 测试补强）

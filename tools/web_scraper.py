@@ -1,5 +1,4 @@
-#!/usr/bin/env /workspace/tmp_windsurf/venv/bin/python3
-
+#!/usr/bin/env
 import asyncio
 import argparse
 import sys
