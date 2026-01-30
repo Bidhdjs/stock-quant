@@ -1,8 +1,6 @@
 #!/usr/bin/env /workspace/tmp_windsurf/venv/bin/python3
 
-import google.generativeai as genai
 from openai import OpenAI, AzureOpenAI
-from anthropic import Anthropic
 import argparse
 import os
 from dotenv import load_dotenv
@@ -102,6 +100,7 @@ def create_llm_client(provider="openai"):
         api_key = os.getenv('ANTHROPIC_API_KEY')
         if not api_key:
             raise ValueError("ANTHROPIC_API_KEY not found in environment variables")
+        from anthropic import Anthropic
         return Anthropic(
             api_key=api_key
         )
@@ -109,6 +108,7 @@ def create_llm_client(provider="openai"):
         api_key = os.getenv('GOOGLE_API_KEY')
         if not api_key:
             raise ValueError("GOOGLE_API_KEY not found in environment variables")
+        import google.generativeai as genai
         genai.configure(api_key=api_key)
         return genai
     elif provider == "local":
@@ -216,6 +216,7 @@ def query_llm(prompt: str, client=None, model=None, provider="openai", image_pat
             return response.content[0].text
             
         elif provider == "gemini":
+            import google.generativeai as genai
             model = client.GenerativeModel(model)
             if image_path:
                 file = genai.upload_file(image_path, mime_type="image/png")
