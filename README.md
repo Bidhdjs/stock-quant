@@ -152,3 +152,16 @@ if __name__ == "__main__":
 [![Star History Chart](https://api.star-history.com/svg?repos=zhaoxusun/stock-quant&type=date&legend=top-left)](https://www.star-history.com/#zhaoxusun/stock-quant&type=date&legend=top-left)
 
 声明：策略仅用于学习和研究，不建议在真实交易中使用，不承担任何交易风险，后果自负
+
+## CLI ????
+
+```bash
+# ?????????
+python -m core.cli data fetch --market US --code AAPL --start 2026-01-01 --end 2026-01-30
+
+# ??????? CSV?
+python -m core.cli backtest --csv data/stock/akshare/US.AAPL_AAPL_20211126_20251124.csv --strategy EnhancedVolumeStrategy
+
+# ????
+python -m core.cli strategy list
+```

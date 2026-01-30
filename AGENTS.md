@@ -271,6 +271,12 @@ python ./tools/search_engine.py "your search keywords"
 
 ## Lessons
 
+- web_scraper.py 抓取到的中文可能乱码（站点为 GBK/GB2312）；需按页面 charset 转码或用 chardet 检测后再解析。
+
+- conda run 在 GBK 控制台输出包含特殊字符时可能触发 UnicodeEncodeError；可尝试设置 OutputEncoding 为 UTF-8 或用 CONDA_NO_PLUGINS=true。
+
+- web_scraper.py 依赖 Playwright；未安装会报 ModuleNotFoundError: playwright。
+
 - Installing google-generativeai upgraded protobuf to 5.x, which conflicts with futu-api (requires protobuf 3.x).
 - llm_api.py imports google.generativeai at module load; if it is missing, even OpenAI calls fail. Install google-generativeai or make the import lazy.
 - Running tools/screenshot_utils.py requires Playwright (and browser drivers); otherwise it fails with ModuleNotFoundError: playwright.
@@ -287,4 +293,11 @@ python ./tools/search_engine.py "your search keywords"
 - 虚拟环境命名为 data_analysis，避免与其他项目冲突。
 
 # Lessons
+- On Windows, conda run can crash printing stdout with Unicode (GBK encoding); sanitize output or force UTF-8.
+- 更新 CLI 或测试后，先用 data_analysis 环境运行 tools/cli_smoke.py 验证（conda run -n data_analysis python tools/cli_smoke.py）。
+- tools/search_engine.py uses duckduckgo_search (now renamed to ddgs) and may return no results; also non-ASCII queries can appear garbled in PowerShell.
+- tools/search_engine.py requires duckduckgo_search; missing package causes ModuleNotFoundError.
+- Gemini API call failed with PERMISSION_DENIED: API key reported as leaked; rotate to a new key.
+- Context7 API key (CONTEXT7_API_KEY) is not set, so docs lookup via context7 is unavailable.
 - Gemini call via google-generativeai can warn deprecation (use google.genai) and fail with WinError 10060 (connection timeout).
+- 更新 CLI 或测试后，先用 data_analysis 环境运行 tools/cli_smoke.py 验证（conda run -n data_analysis python tools/cli_smoke.py）。

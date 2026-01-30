@@ -164,3 +164,16 @@ also risk being banned by the data source service.
 
 Disclaimer: The strategy is for learning and research purposes only. It is not recommended for use 
 in real trading. We do not assume any trading risks, and all consequences are at your own risk.
+
+## CLI Quickstart
+
+```bash
+# Fetch historical data and cache
+python -m core.cli data fetch --market US --code AAPL --start 2026-01-01 --end 2026-01-30
+
+# Backtest (use local CSV)
+python -m core.cli backtest --csv data/stock/akshare/US.AAPL_AAPL_20211126_20251124.csv --strategy EnhancedVolumeStrategy
+
+# List strategies
+python -m core.cli strategy list
+```

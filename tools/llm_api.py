@@ -105,12 +105,11 @@ def create_llm_client(provider="openai"):
             api_key=api_key
         )
     elif provider == "gemini":
-        api_key = os.getenv('GOOGLE_API_KEY')
+        api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY not found in environment variables")
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        return genai
+            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY not found in environment variables")
+        from google import genai
+        return genai.Client(api_key=api_key)
     elif provider == "local":
         return OpenAI(
             base_url="http://192.168.180.137:8006/v1",
@@ -150,7 +149,7 @@ def query_llm(prompt: str, client=None, model=None, provider="openai", image_pat
             elif provider == "anthropic":
                 model = "claude-3-7-sonnet-20250219"
             elif provider == "gemini":
-                model = "gemini-2.0-flash-exp"
+                model = "gemini-2.5-flash"
             elif provider == "local":
                 model = "Qwen/Qwen2.5-32B-Instruct-AWQ"
         
@@ -216,24 +215,20 @@ def query_llm(prompt: str, client=None, model=None, provider="openai", image_pat
             return response.content[0].text
             
         elif provider == "gemini":
-            import google.generativeai as genai
-            model = client.GenerativeModel(model)
             if image_path:
-                file = genai.upload_file(image_path, mime_type="image/png")
-                chat_session = model.start_chat(
-                    history=[{
-                        "role": "user",
-                        "parts": [file, prompt]
-                    }]
-                )
+                from google.genai import types
+                mime_type, _ = mimetypes.guess_type(image_path)
+                if not mime_type:
+                    mime_type = "image/png"
+                with open(image_path, "rb") as image_file:
+                    image_bytes = image_file.read()
+                contents = [
+                    prompt,
+                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                ]
             else:
-                chat_session = model.start_chat(
-                    history=[{
-                        "role": "user",
-                        "parts": [prompt]
-                    }]
-                )
-            response = chat_session.send_message(prompt)
+                contents = prompt
+            response = client.models.generate_content(model=model, contents=contents)
             return response.text
             
     except Exception as e:
@@ -258,7 +253,7 @@ def main():
         elif args.provider == 'anthropic':
             args.model = "claude-3-7-sonnet-20250219"
         elif args.provider == 'gemini':
-            args.model = "gemini-2.0-flash-exp"
+            args.model = "gemini-2.5-flash"
         elif args.provider == 'azure':
             args.model = os.getenv('AZURE_OPENAI_MODEL_DEPLOYMENT', 'gpt-4o-ms')  # Get from env with fallback
 
