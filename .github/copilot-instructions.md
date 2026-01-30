@@ -28,46 +28,36 @@
 - 完成阶段性成果及时更新 Scratchpad。
 - 任何可复用的经验（尤其是你犯错后修复的经验）写入 `Lessons`。
 
+
+
 # Tools
 
 > 项目工具均为 Python 脚本，可用于批处理或自动化。
 
 ## Screenshot Verification
 ```bash
-venv/bin/python tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
-venv/bin/python tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
+python tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
+python tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
 ```
 
 ## LLM
 ```bash
-venv/bin/python ./tools/llm_api.py --prompt "Your prompt" --provider "anthropic"
+python ./tools/llm_api.py --prompt "Your prompt" --provider "anthropic"
 ```
 
 ## Web Browser
 ```bash
-venv/bin/python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
+python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
 ```
 
 ## Search Engine
 ```bash
-venv/bin/python ./tools/search_engine.py "your search keywords"
+python ./tools/search_engine.py "your search keywords"
 ```
 
-# Lessons
-
-## User Specified Lessons
-- You have a python venv in ./venv. Use it.
-- Include info useful for debugging in the program output.
-- Read the file before you try to edit it.
-- Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
-
-## Cursor learned
-- For search results, ensure proper handling of different character encodings (UTF-8) for international queries
-- Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
-- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
-- Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
 
 ## Project Lessons
+- 运行 pytest 时必须使用 conda 环境 data_analysis（推荐: conda run -n data_analysis python -m pytest -m mock_only）。
 - AGENTS.md 等中文规则文件必须使用 UTF-8（带 BOM）保存，避免 PowerShell/编辑器默认编码导致乱码。
 - copilot-instructions.md 必须使用 UTF-8（带 BOM）保存，必要时用 python 直接写入避免乱码。
 - 虚拟环境命名为 data_analysis，避免与其他项目冲突。

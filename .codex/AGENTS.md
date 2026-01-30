@@ -572,6 +572,7 @@ python ./tools/search_engine.py "your search keywords"
 ```
 
 # Lessons
+- 运行 pytest 时必须使用 conda 环境 data_analysis（推荐: conda run -n data_analysis python -m pytest -m mock_only）。
 
 
 

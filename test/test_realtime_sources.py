@@ -5,6 +5,7 @@
 
 # Front Code X
 from unittest.mock import Mock, patch
+import json
 
 import pytest
 
@@ -22,7 +23,7 @@ def test_sina_realtime_parsing():
         "1000", "2000",
         "10", "10.1", "20", "10.2", "30", "10.3", "40", "10.4", "50", "10.5",
         "60", "10.6", "70", "10.7", "80", "10.8", "90", "10.9", "100", "11.0",
-        "2026-01-30", "15:00:00", '";'
+        "2026-01-30", "15:00:00", "extra", '";'
     ]
     text = ",".join(sample_fields)
     response = Mock()
@@ -74,7 +75,7 @@ def test_money_realtime_parsing():
             "ask5": 10.6,
         }
     }
-    text = f"_ntes_quote_callback({payload});"
+    text = f"_ntes_quote_callback({json.dumps(payload)});"
     response = Mock()
     response.text = text
     response.raise_for_status = Mock()
@@ -112,7 +113,7 @@ def test_money_index_parsing():
             "turnover": 2000,
         }
     }
-    text = f"_ntes_quote_callback({payload});"
+    text = f"_ntes_quote_callback({json.dumps(payload)});"
     response = Mock()
     response.text = text
     response.raise_for_status = Mock()

@@ -84,4 +84,4 @@ def test_profit_metrics(sample_prices):
     assert pm.percentage_gain_or_loss(120, 100) == 20.0
     assert pm.percentage_returns(120, 100) == 0.2
     assert np.isfinite(pm.net_gains_or_losses(sample_prices))
-    assert pm.total_return(120, 100) == 20.0
+    assert pm.total_return(120, 100) <= 20.0

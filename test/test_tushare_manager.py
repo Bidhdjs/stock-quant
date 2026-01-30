@@ -9,6 +9,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+pytest.importorskip("tushare")
+
 from core.stock.manager_tushare import TushareManager, new_stock, stock_list
 
 

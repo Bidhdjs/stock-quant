@@ -6,6 +6,8 @@
 import numpy as np
 import pytest
 
+pytest.importorskip("scipy")
+
 from core.analysis import options_pricing as op
 
 
@@ -13,15 +15,16 @@ pytestmark = pytest.mark.mock_only
 
 
 def test_black_scholes_call_put():
-    call, put = op.black_scholes(100, 100, 1.0, 0.05, 0.2)
+    call = op.black_scholes_call(100, 100, 0.05, 0.2, 1.0)
+    put = op.black_scholes_put(100, 100, 0.05, 0.2, 1.0)
     assert np.isfinite(call)
     assert np.isfinite(put)
 
 
 def test_greeks():
-    greeks = op.greeks(100, 100, 1.0, 0.05, 0.2)
-    assert "delta" in greeks
-    assert "gamma" in greeks
-    assert "theta" in greeks
-    assert "vega" in greeks
-    assert "rho" in greeks
+    delta, gamma, theta, vega, rho = op.greeks(100, 100, 0.05, 0.2, 1.0)
+    assert np.isfinite(delta)
+    assert np.isfinite(gamma)
+    assert np.isfinite(theta)
+    assert np.isfinite(vega)
+    assert np.isfinite(rho)
