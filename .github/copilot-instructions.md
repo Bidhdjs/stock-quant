@@ -1,4 +1,4 @@
-﻿# Stock-Quant Copilot 配置
+# Stock-Quant Copilot 配置
 
 执行前获取一些最新的当前时间
 对任何问题先规划再执行
@@ -54,7 +54,11 @@ python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
 ```bash
 python ./tools/search_engine.py "your search keywords"
 ```
-
+# Lessons
+- Running tools/screenshot_utils.py requires Playwright (and browser drivers); otherwise it fails with ModuleNotFoundError: playwright.
+- 新增测试后必须在 data_analysis 环境跑 mock-only（conda run -n data_analysis python -m pytest -m mock_only test/xxx.py），如失败需当场修复并复跑。
+- 运行 pytest 时必须使用 conda 环境 data_analysis（推荐: conda run -n data_analysis python -m pytest -m mock_only）。
+- 写回的内容如果时乱码就用英文写回
 
 ## Project Lessons
 - 新增测试后必须在 data_analysis 环境跑 mock-only（conda run -n data_analysis python -m pytest -m mock_only test/xxx.py），如失败需当场修复并复跑。
@@ -64,6 +68,4 @@ python ./tools/search_engine.py "your search keywords"
 - 虚拟环境命名为 data_analysis，避免与其他项目冲突。
 # Scratchpad
 
-- [X] 任务描述：执行 Sprint 1（数据源稳定 + mock-only 测试补强）
-- [X] 计划步骤：1) 评估现有数据源与标准化流程 2) 增强标准化/校验与缺失成交量提示 3) 加 mock-only 测试 4) 运行 mock-only 测试
-- [ ] 进度更新：已完成标准化与校验增强、添加测试；等待安装 pytest 后运行 mock-only 测试
+

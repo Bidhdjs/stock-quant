@@ -1,6 +1,6 @@
 {
     "markdown.validate.enabled": true,
-    "commentTranslate.browse.mode": "contrast",
+    "commentTranslate.browse.mode": "inplace",
     "python.testing.pytestArgs": [
         "test"
     ],

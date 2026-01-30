@@ -553,12 +553,12 @@ def test_example():
 ## Screenshot Verification
 ```bash
 python tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
-python tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
+python tools/llm_api.py --prompt "Your verification question" --provider {openai|gemini} --image path/to/screenshot.png
 ```
 
 ## LLM
 ```bash
-python ./tools/llm_api.py --prompt "Your prompt" --provider "anthropic"
+python ./tools/llm_api.py --prompt "Your prompt" --provider {openai|gemini}
 ```
 
 ## Web Browser
@@ -572,6 +572,8 @@ python ./tools/search_engine.py "your search keywords"
 ```
 
 # Lessons
+- Baidu navigation via Playwright may time out with wait_until="networkidle"; consider using domcontentloaded or a longer timeout for screenshotting.
+- Running tools/screenshot_utils.py requires Playwright (and browser drivers); otherwise it fails with ModuleNotFoundError: playwright.
 - 新增测试后必须在 data_analysis 环境跑 mock-only（conda run -n data_analysis python -m pytest -m mock_only test/xxx.py），如失败需当场修复并复跑。
 - 运行 pytest 时必须使用 conda 环境 data_analysis（推荐: conda run -n data_analysis python -m pytest -m mock_only）。
 
