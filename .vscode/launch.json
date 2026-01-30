@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File (策略脚本)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}" // 确保相对路径正确读取 CSV/Parquet 数据
+        },
+        {
+            "name": "Flask: Web Server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "frontend/frontend_app.py",  // 假设你的入口文件是 app.py
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "run",
+                "--no-debugger", // 禁用 Flask 自带调试器，使用 VS Code 的
+                "--no-reload"    // 调试模式下建议关闭自动重载，防止断点失效
+            ],
+            "jinja": true,
+            "justMyCode": false // 允许进入 Flask 源码内部（如果需要排查框架问题）
+        }
+    ]
+}

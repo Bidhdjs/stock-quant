@@ -12,3 +12,6 @@ flask
 flask-cors
 schedule
 weasyprint
+requests
+tushare
+TA-Lib
