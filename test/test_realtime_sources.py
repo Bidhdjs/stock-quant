@@ -105,6 +105,8 @@ class TestRealtimeSources(unittest.TestCase):
             result = manager_money.shenzhen_component_index()
         self.assertEqual(result["name"], "深证成指")
         self.assertEqual(result["price"], 100.0)
+        self.assertEqual(result["change"], 10.0)
+        self.assertEqual(result["change_pct"], 1.2)
         self.assertEqual(result["amount"], 2000.0)
 
 

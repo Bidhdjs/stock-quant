@@ -70,8 +70,8 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
 - Execute backtest on the frontend page
   - Get the historical k-line data of the target stock (supports A-share, HK-share, and US-share)
   - Select the stock to backtest (supports A-share, HK-share, and US-share)
-  - Select the strategy to backtest (current code supports EnhancedVolumeStrategy. you can view the strategy in core/strategy/trading/volume/trading_strategy_volume.py)
-    - Or add your own strategy (refer to the EnhancedVolumeStrategy class in core/strategy/trading/volume/trading_strategy_volume.py)
+  - Select the strategy to backtest (current code supports EnhancedVolumeStrategy. you can view the strategy in core/strategy/trading/volume/enhanced_volume.py)
+    - Or add your own strategy (refer to the EnhancedVolumeStrategy class in core/strategy/trading/volume/enhanced_volume.py)
   - Click the "Backtest" button to execute the backtest
   - ![index_page](https://zhaoxusun.github.io/stock-quant/resource/img/index.png)
   - Backtest results will be displayed on the frontend page
@@ -85,7 +85,7 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
 ```
 from common.logger import create_log
 from core.quant.quant_manage import run_backtest_enhanced_volume_strategy, run_backtest_enhanced_volume_strategy_multi
-from core.strategy.trading.volume.trading_strategy_volume import EnhancedVolumeStrategy
+from core.strategy.trading.volume.enhanced_volume import EnhancedVolumeStrategy
 from settings import stock_data_root
 
 logger = create_log('test_strategy')
