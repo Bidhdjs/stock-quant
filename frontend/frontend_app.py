@@ -23,7 +23,7 @@ from flask import make_response
 import json
 from common.util_csv import combine_data, read_data
 from common.util_html import signals_to_html
-from core.stock import manager_baostock, manager_akshare, manager_futu
+from core.stock import manager_baostock, manager_akshare, manager_futu, manager_yfinance
 from core.strategy.strategy_manager import global_strategy_manager
 from common.logger import create_log
 from core.quant.quant_manage import run_backtest_enhanced_volume_strategy, run_backtest_enhanced_volume_strategy_multi
@@ -36,7 +36,7 @@ CORS(app)
 logger = create_log('quant_frontend')
 task_manager = TaskManager()
 # 支持的数据源
-DATA_SOURCES = ['akshare', 'baostock', 'futu']
+DATA_SOURCES = ['akshare', 'baostock', 'futu', 'yfinance']
 
 
 def log_request_details(f):
@@ -526,6 +526,22 @@ def acquire_stock_data():
                 error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
                 error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
                 return error_response
+        elif data_source == 'yfinance':
+            # yfinance 支持美股、港股、台股等全球市场
+            # 清理股票代码前缀
+            clean_code = stock_code
+            if market == 'us':
+                clean_code = stock_code.replace('US.', '')
+            elif market == 'hk':
+                clean_code = stock_code.replace('HK.', '')
+            
+            success, filename = manager_yfinance.get_single_stock_history(
+                stock_code=clean_code,
+                market=market.upper(),
+                start_date=start_date,
+                end_date=end_date,
+                output_dir=data_source
+            )
         else:
             error_response_data = {'success': False, 'message': f'数据源 {data_source} 的数据获取功能尚未实现', 'data':{}}
             error_response = make_response(json.dumps(error_response_data, ensure_ascii=False))
@@ -1021,6 +1037,7 @@ def disable_task(task_id):
             'success': True,
             'message': '禁用任务成功',
             'data': disabled_task
+            
         }
         response = make_response(json.dumps(response_data, ensure_ascii=False))
         response.headers['Content-Type'] = 'application/json; charset=utf-8'

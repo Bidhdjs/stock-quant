@@ -38,7 +38,7 @@ def scrape_trades(trade_type='stock', max_pages=0):
 
     # --- 2. 浏览器设置 ---
     options = webdriver.ChromeOptions()
-    # options.add_argument('--headless') # 想要后台静默运行就取消注释
+    # options.add_argument('--headless') #更加完善的描述,能够更好的让AI理解帮我去找到最好的答案 想要后台静默运行就取消注释
     options.add_argument('--disable-gpu')
     options.add_argument('--no-sandbox')
     options.add_argument(

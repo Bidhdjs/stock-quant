@@ -1,0 +1,100 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © chengwei093
+
+//@version=4
+study(title="AT Script", shorttitle="异界番茄", overlay=true)
+at_show_bollingerband = input(false, title="是否显示 - 布林线")
+at_show_gmma = input(false, title="是否显示 - GMMA - 顾比均线")
+at_show_ma_system = input(true, title="是否显示 - 均线系统")
+at_ma_type = input("SMA", title="移动平均线种类", options=["SMA", "WMA", "HMA", "EMA"])
+at_ma_number = input("全显示", title="均线数量", options=["全显示", "双均线"])
+
+// Alien Tomato moving averages
+at_ma_len_1= input(8, minval=1, title="Length")
+at_ma_len_2= input(21, minval=1, title="双均线-短")
+at_ma_len_3= input(34, minval=1, title="Length")
+at_ma_len_4= input(55, minval=1, title="双均线-长")
+at_ma_len_5= input(89, minval=1, title="Length")
+at_ma_len_6= input(144, minval=1, title="Length")
+at_ma_len_7= input(233, minval=1, title="Length")
+
+at_ma_graph_1= sma(close, at_ma_len_1)
+at_ma_graph_2= sma(close, at_ma_len_2)
+at_ma_graph_3= sma(close, at_ma_len_3)
+at_ma_graph_4= sma(close, at_ma_len_4)
+at_ma_graph_5= sma(close, at_ma_len_5)
+at_ma_graph_6= sma(close, at_ma_len_6)
+at_ma_graph_7= sma(close, at_ma_len_7)
+if at_ma_type == "WMA"
+    at_ma_graph_1:= wma(close, at_ma_len_1)
+    at_ma_graph_2:= wma(close, at_ma_len_2)
+    at_ma_graph_3:= wma(close, at_ma_len_3)
+    at_ma_graph_4:= wma(close, at_ma_len_4)
+    at_ma_graph_5:= wma(close, at_ma_len_5)
+    at_ma_graph_6:= wma(close, at_ma_len_6)
+    at_ma_graph_7:= wma(close, at_ma_len_7)
+if at_ma_type == "EMA"
+    at_ma_graph_1:= ema(close, at_ma_len_1)
+    at_ma_graph_2:= ema(close, at_ma_len_2)
+    at_ma_graph_3:= ema(close, at_ma_len_3)
+    at_ma_graph_4:= ema(close, at_ma_len_4)
+    at_ma_graph_5:= ema(close, at_ma_len_5)
+    at_ma_graph_6:= ema(close, at_ma_len_6)
+    at_ma_graph_7:= ema(close, at_ma_len_7)
+if at_ma_type == "HMA"
+    at_ma_graph_1:= hma(close, at_ma_len_1)
+    at_ma_graph_2:= hma(close, at_ma_len_2)
+    at_ma_graph_3:= hma(close, at_ma_len_3)
+    at_ma_graph_4:= hma(close, at_ma_len_4)
+    at_ma_graph_5:= hma(close, at_ma_len_5)
+    at_ma_graph_6:= hma(close, at_ma_len_6)
+    at_ma_graph_7:= hma(close, at_ma_len_7)
+
+plot(at_ma_graph_2, title="Graph_2", color=color.orange, transp= at_show_ma_system ? 0 : 100)    
+plot(at_ma_graph_4, title="Graph_4", color=color.green,  transp= at_show_ma_system ? 0 : 100)
+
+plot(at_ma_graph_1, title="Graph_1", color=color.red, transp= at_show_ma_system ?  (at_ma_number=="双均线" ? 100 : 0)   : 100)
+plot(at_ma_graph_3, title="Graph_3", color=color.yellow, transp= at_show_ma_system ?  (at_ma_number=="双均线" ? 100 : 0)   : 100)
+plot(at_ma_graph_5, title="Graph_5", color=color.blue, transp= at_show_ma_system ?  (at_ma_number=="双均线" ? 100 : 0)   : 100)
+plot(at_ma_graph_6, title="Graph_6", color=color.purple, transp= at_show_ma_system ?  (at_ma_number=="双均线" ? 100 : 0)   : 100)
+plot(at_ma_graph_7, title="Graph_7", color=color.black, transp= at_show_ma_system ?  (at_ma_number=="双均线" ? 100 : 0)   : 100)
+
+// Alien Tomato bolliger band
+at_bb_basis = sma(close, 20)
+at_bb_dev = 2.0 * stdev(close, 20)
+at_bb_upper = at_bb_basis + at_bb_dev
+at_bb_lower = at_bb_basis - at_bb_dev
+plot(at_bb_basis, "Basis", color=#872323, transp= at_show_bollingerband ? 0: 100)
+at_bb_p1 = plot(at_bb_upper, "Upper", color=color.teal, transp= at_show_bollingerband ? 0: 100)
+at_bb_p2 = plot(at_bb_lower, "Lower", color=color.teal, transp= at_show_bollingerband ? 0: 100)
+fill(at_bb_p1, at_bb_p2, title = "Background", color=#198787, transp= at_show_bollingerband ? 95: 100)
+
+
+// Alien Tomato GMMA
+at_gmma_ema1 = ema(close, 3)
+at_gmma_ema2 = ema(close, 5)
+at_gmma_ema3 = ema(close, 8)
+at_gmma_ema4 = ema(close, 10)
+at_gmma_ema5 = ema(close, 12)
+at_gmma_ema6 = ema(close, 15)
+at_gmma_ema7 = ema(close, 30)
+at_gmma_ema8 = ema(close, 35)
+at_gmma_ema9 = ema(close, 40)
+at_gmma_ema10 = ema(close, 45)
+at_gmma_ema11 = ema(close, 50)
+at_gmma_ema12 = ema(close, 60)
+
+plot(at_gmma_ema1, color=color.green, title="s1", transp= at_show_gmma ? 0: 100) // s: short
+plot(at_gmma_ema2, color=color.green, title="s2", transp= at_show_gmma ? 0: 100)
+plot(at_gmma_ema3, color=color.green, title="s3", transp= at_show_gmma ? 0: 100)
+plot(at_gmma_ema4, color=color.green, title="s4", transp= at_show_gmma ? 0: 100)
+plot(at_gmma_ema5, color=color.green, title="s5", transp= at_show_gmma ? 0: 100)
+plot(at_gmma_ema6, color=color.green, title="s6", transp= at_show_gmma ? 0: 100)
+
+plot(at_gmma_ema7, color=color.red, title="l1", transp= at_show_gmma ? 0: 100) // l: long
+plot(at_gmma_ema8, color=color.red, title="l2", transp= at_show_gmma ? 0: 100)
+plot(at_gmma_ema9, color=color.red, title="l3", transp= at_show_gmma ? 0: 100)
+plot(at_gmma_ema10, color=color.red, title="l4", transp= at_show_gmma ? 0: 100)
+plot(at_gmma_ema11, color=color.red, title="l5", transp= at_show_gmma ? 0: 100)
+plot(at_gmma_ema12, color=color.red, title="l6", transp= at_show_gmma ? 0: 100)
+

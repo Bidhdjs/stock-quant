@@ -1,0 +1,18 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+//@version=4
+study("CVwap",overlay=true)
+
+pv = hlc3 * volume 
+vma144 = sum(pv,55)/sum(volume,55)
+vma13 = sum(pv,13)/sum(volume,13)
+vma21 = sum(pv,21)/sum(volume,21)
+vma34 = sum(pv,34)/sum(volume,34)
+vma55 = sum(pv,21)/sum(volume,21)
+
+
+plot(vma144,title="VMA144",color=color.orange)
+//plot(vma34,title="VMA34",color=color.yellow)
+plot(vma55,title="VMA55",color=color.yellow)
+//plot(vma13,title="VMA13",color=color.green)
+//plot(vma21,title="VMA21",color=color.green)

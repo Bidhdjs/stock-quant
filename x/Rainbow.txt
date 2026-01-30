@@ -1,0 +1,52 @@
+//©RAINBOW
+//@version=5
+indicator('RAINBOW', shorttitle='RAINBOW', overlay=true, max_labels_count=500)
+showRainbow = input.bool(true,"Show Rainbow EMA?", inline="01" )
+
+//----------------------------------------------------------------------//EMA
+gr2 = "𝐄𝐌𝐀"
+srcEMA = input(close, title="Source//EMA", group=gr2)
+
+///---------------FAST EMA
+len1 = input.int(3, minval=1, title="EMA_FA", group=gr2)
+len2 = input.int(5, minval=1, title="EMA_FB", group=gr2)
+len3 = input.int(8, minval=1, title="EMA_FC", group=gr2)
+len4 = input.int(10, minval=1, title="EMA_FD", group=gr2)
+len5 = input.int(13, minval=1, title="EMA_FE", group=gr2)
+len6 = input.int(15, minval=1, title="EMA_FF", group=gr2)
+
+out1 = ta.ema(srcEMA, len1)
+out2 = ta.ema(srcEMA, len2)
+out3 = ta.ema(srcEMA, len3)
+out4 = ta.ema(srcEMA, len4)
+out5 = ta.ema(srcEMA, len5)
+out6 = ta.ema(srcEMA, len6)
+
+o1 = plot(showRainbow ? out1: na, title="EMA_FA", color=#fdfdfd, linewidth=1)
+o2 = plot(showRainbow ? out2: na, title="EMA_FB", color=#f14c4c, linewidth=1 )
+o3 = plot(showRainbow ? out3: na, title="EMA_FC", color=color.rgb(247, 180, 136), linewidth=1 )
+o4 = plot(showRainbow ? out4: na, title="EMA_FD", color=#ff970f, linewidth=1 )
+o5 = plot(showRainbow ? out5: na, title="EMA_FE", color=#fcff47, linewidth=1 )
+o6 = plot(showRainbow ? out6: na, title="EMA_FF", color=#fbff00, linewidth=1 )
+
+////---------------SLOW EMA
+len7 = input.int(30, minval=1, title="EMA_SA", group=gr2)
+len8 = input.int(35, minval=1, title="EMA_SB", group=gr2)
+len9 = input.int(40, minval=1, title="EMA_SC", group=gr2)
+len10 = input.int(45, minval=1, title="EMA_SD", group=gr2)
+len11 = input.int(50, minval=1, title="EMA_SE", group=gr2)
+len12 = input.int(60, minval=1, title="EMA_SF", group=gr2)
+
+out7 = ta.ema(srcEMA, len7)
+out8 = ta.ema(srcEMA, len8)
+out9 = ta.ema(srcEMA, len9)
+out10 = ta.ema(srcEMA, len10)
+out11 = ta.ema(srcEMA, len11)
+out12 = ta.ema(srcEMA, len12)
+
+o7 = plot(showRainbow ? out7: na, title="EMA_SA", color=#86fa77, linewidth=1 )
+o8 = plot(showRainbow ? out8: na, title="EMA_SB", color=#1eff00, linewidth=1 )
+o9 = plot(showRainbow ? out9: na, title="EMA_SC", color=#46bbff, linewidth=1 )
+o10 = plot(showRainbow ? out10: na, title="EMA_SD", color=#0071f1, linewidth=1 )
+o11 = plot(showRainbow ? out11: na, title="EMA_SE", color=#1808f8, linewidth=1 )
+o12 = plot(showRainbow ? out12: na, title="EMA_SF", color=#8a27fc, linewidth=1 )

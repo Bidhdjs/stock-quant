@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易体系思维导图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        #container {
+            width: 100%;
+            height: calc(100vh - 50px);
+        }
+        .pathbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(44,62,80,0.95);
+            color: #fff;
+            padding: 12px 20px;
+            font-size: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            height: 50px;
+            box-sizing: border-box;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div class="legend">
+        <div style="font-weight: bold; margin-bottom: 10px;">图例说明</div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #4A90E2;"></div>
+            <span>标的物 (Assets)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #50C878;"></div>
+            <span>技术与形态 (Technique)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF8C42;"></div>
+            <span>执行环节 (Execution)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #E74C3C;"></div>
+            <span>评价与风控 (Evaluation)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #2C3E50;"></div>
+            <span>底层原理 (Principles)</span>
+        </div>
+    </div>
+    <div id="pathBar" class="pathbar">选中路径：<span id="pathText">（点击任意节点显示路径）</span></div>
+
+    <script>
+        var chartDom = document.getElementById('container');
+        var myChart = echarts.init(chartDom);
+
+        // 将颜色应用到节点标签框，并根据亮度设置文字颜色
+        function hexToRgb(hex) {
+            var h = hex.replace('#', '');
+            if (h.length === 3) {
+                h = h.split('').map(function(x){return x + x;}).join('');
+            }
+            var bigint = parseInt(h, 16);
+            var r = (bigint >> 16) & 255;
+            var g = (bigint >> 8) & 255;
+            var b = bigint & 255;
+            return { r: r, g: g, b: b };
+        }
+        function isLight(hex) {
+            try {
+                var rgb = hexToRgb(hex);
+                // 计算相对亮度 (WCAG)
+                var rs = rgb.r / 255, gs = rgb.g / 255, bs = rgb.b / 255;
+                [rs, gs, bs] = [rs, gs, bs].map(function(c){
+                    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+                });
+                var L = 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+                return L > 0.6; // 亮度阈值
+            } catch(e) { return false; }
+        }
+        function applyLabelColors(node) {
+            var bg = (node.itemStyle && node.itemStyle.color) ? node.itemStyle.color : '#666';
+            var border = (node.itemStyle && node.itemStyle.borderColor) ? node.itemStyle.borderColor : '#404040';
+            node.label = Object.assign({
+                padding: [6, 10],
+                borderRadius: 6,
+                backgroundColor: bg,
+                borderColor: border,
+                borderWidth: 1,
+                color: isLight(bg) ? '#222' : '#fff',
+                fontSize: (node.children && node.children.length) ? 16 : 14,
+                fontWeight: (node.children && node.children.length) ? 'bold' : 'normal'
+            }, node.label || {});
+            if (node.children && node.children.length) {
+                node.children.forEach(applyLabelColors);
+            }
+        }
+
+        var data = {
+            name: '交易体系\n(System)',
+            itemStyle: {
+                color: '#34495E',
+                borderColor: '#2C3E50',
+                borderWidth: 3
+            },
+            label: {
+                fontSize: 18,
+                fontWeight: 'bold',
+                color: '#fff'
+            },
+            children: [
+                {
+                    name: '标的物\n(Assets)',
+                    itemStyle: {
+                        color: '#4A90E2',
+                        borderColor: '#2E5C8A'
+                    },
+                    label: {
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: '#fff'
+                    },
+                    children: [
+                        {
+                            name: '股票 (Stock)',
+                            itemStyle: { color: '#5DADE2' },
+                            children: [
+                                { name: '科技股', itemStyle: { color: '#85C1E9' } },
+                                { name: '船厂', itemStyle: { color: '#85C1E9' } },
+                                { name: '小票', itemStyle: { color: '#85C1E9' } },
+                                { name: '次新股', itemStyle: { color: '#85C1E9' } },
+                                { name: '中概', itemStyle: { color: '#85C1E9' } }
+                            ]
+                        },
+                        {
+                            name: '期权 (Option)',
+                            itemStyle: { color: '#5DADE2' },
+                            children: [
+                                { 
+                                    name: '时效', 
+                                    itemStyle: { color: '#85C1E9' },
+                                    children: [
+                                        { name: '短期末日', itemStyle: { color: '#AED6F1' } },
+                                        { name: '长期', itemStyle: { color: '#AED6F1' } },
+                                        { name: 'Leap call', itemStyle: { color: '#AED6F1' } }
+                                    ]
+                                },
+                                { 
+                                    name: '策略', 
+                                    itemStyle: { color: '#85C1E9' },
+                                    children: [
+                                        { name: 'CS', itemStyle: { color: '#AED6F1' } },
+                                        { name: '蝴蝶', itemStyle: { color: '#AED6F1' } },
+                                        { name: '铁鹰', itemStyle: { color: '#AED6F1' } }
+                                    ]
+                                }
+                            ]
+                        },
+                        { name: '贵金属\n(Precious Metals)', itemStyle: { color: '#5DADE2' } },
+                        { name: '国债\n(Treasuries)', itemStyle: { color: '#5DADE2' } }
+                    ]
+                },
+                {
+                    name: '技术体系\n(Technique)',
+                    itemStyle: {
+                        color: '#50C878',
+                        borderColor: '#2E8B57'
+                    },
+                    label: {
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: '#fff'
+                    },
+                    children: [
+                        {
+                            name: '形态学',
+                            itemStyle: { color: '#6FD98E' },
+                            children: [
+                                { 
+                                    name: '买卖点', 
+                                    itemStyle: { color: '#90EE90' },
+                                    children: [
+                                        { name: '一买', itemStyle: { color: '#B2F2BB' } },
+                                        { name: '二买', itemStyle: { color: '#B2F2BB' } },
+                                        { name: '三买', itemStyle: { color: '#B2F2BB' } }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            name: '交易风格',
+                            itemStyle: { color: '#6FD98E' },
+                            children: [
+                                { name: '左侧交易', itemStyle: { color: '#90EE90' } },
+                                { name: '右侧交易', itemStyle: { color: '#90EE90' } }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: '执行系统\n(Execution)',
+                    itemStyle: {
+                        color: '#FF8C42',
+                        borderColor: '#D35400'
+                    },
+                    label: {
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: '#fff'
+                    },
+                    children: [
+                        { name: '仓位管理\n(Position Mgmt)', itemStyle: { color: '#FFA866' } },
+                        { name: '入场 (Entry)', itemStyle: { color: '#FFA866' } },
+                        { name: '出场 (Exit)', itemStyle: { color: '#FFA866' } }
+                    ]
+                },
+                {
+                    name: '评价矩阵\n(Evaluation)',
+                    itemStyle: {
+                        color: '#E74C3C',
+                        borderColor: '#C0392B'
+                    },
+                    label: {
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: '#fff'
+                    },
+                    children: [
+                        {
+                            name: '正向反馈',
+                            itemStyle: { color: '#EC7063' },
+                            children: [
+                                { name: '好的交易 好的结果\n(系统内盈利)', itemStyle: { color: '#F1948A' } },
+                                { name: '好的交易 坏的结果\n(系统内亏损/成本)', itemStyle: { color: '#F1948A' } }
+                            ]
+                        },
+                        {
+                            name: '负向反馈',
+                            itemStyle: { color: '#EC7063' },
+                            children: [
+                                { name: '坏的交易 坏的结果\n(乱做且亏钱)', itemStyle: { color: '#F1948A' } },
+                                { name: '坏的交易 好的结果\n(乱做但赚钱/运气陷阱)', itemStyle: { color: '#F1948A' } }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: '底层原理\n(Principles)',
+                    itemStyle: {
+                        color: '#2C3E50',
+                        borderColor: '#1C2833'
+                    },
+                    label: {
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: '#fff'
+                    }
+                }
+            ]
+        };
+
+        // 应用颜色到每个节点的标签框
+        applyLabelColors(data);
+
+        // 构建节点路径映射表
+        var nodePathMap = {};
+        function buildPathMap(node, parentPath) {
+            var currentPath = parentPath ? parentPath.concat([node.name]) : [node.name];
+            nodePathMap[node.name] = currentPath;
+            if (node.children && node.children.length) {
+                node.children.forEach(function(child) {
+                    buildPathMap(child, currentPath);
+                });
+            }
+        }
+        buildPathMap(data, null);
+
+        var option = {
+            tooltip: {
+                trigger: 'item',
+                triggerOn: 'mousemove',
+                formatter: function(params) {
+                    // 获取完整路径
+                    if (params.treePathInfo && params.treePathInfo.length > 0) {
+                        var path = params.treePathInfo.map(function(item) { 
+                            return item.name.replace(/\n/g, ' '); 
+                        }).join(' → ');
+                        return '<div style="max-width:400px;white-space:normal;">' + path + '</div>';
+                    }
+                    return params.name;
+                }
+            },
+            series: [
+                {
+                    type: 'tree',
+                    data: [data],
+                    top: '5%',
+                    left: '10%',
+                    bottom: '5%',
+                    right: '25%',
+                    symbolSize: 12,
+                    orient: 'LR',
+                    expandAndCollapse: true,
+                    initialTreeDepth: 10,
+                    label: {
+                        position: 'left',
+                        verticalAlign: 'middle',
+                        align: 'right',
+                        fontSize: 14,
+                        padding: [5, 10],
+                        borderRadius: 6
+                    },
+                    leaves: {
+                        label: {
+                            position: 'right',
+                            verticalAlign: 'middle',
+                            align: 'left'
+                        }
+                    },
+                    emphasis: {
+                        focus: 'ancestor',
+                        itemStyle: {
+                            borderWidth: 4,
+                            shadowBlur: 15,
+                            shadowColor: 'rgba(255,215,0,0.8)'
+                        },
+                        lineStyle: {
+                            width: 4,
+                            color: '#FFD700',
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(255,215,0,0.6)'
+                        }
+                    },
+                    animationDurationUpdate: 750,
+                    lineStyle: {
+                        color: '#999',
+                        width: 2,
+                        curveness: 0.5
+                    }
+                }
+            ]
+        };
+
+        myChart.setOption(option);
+
+        // 点击显示完整路径到底部路径栏，并高亮路径
+        myChart.on('click', function (params) {
+            console.log('点击事件:', params); // 调试信息
+            
+            var nodeName = params.name;
+            var fullPath = null;
+            
+            // 方法1: 尝试从 treePathInfo 获取
+            if (params.treePathInfo && params.treePathInfo.length > 0) {
+                fullPath = params.treePathInfo.map(function(item) { 
+                    return item.name.replace(/\n/g, ' '); 
+                });
+            }
+            // 方法2: 从预构建的路径映射表获取
+            else if (nodePathMap[nodeName]) {
+                fullPath = nodePathMap[nodeName].map(function(n) {
+                    return n.replace(/\n/g, ' ');
+                });
+            }
+            // 方法3: 从 data 属性获取
+            else if (params.data && params.data.treeAncestors) {
+                fullPath = params.data.treeAncestors.map(function(item) {
+                    return item.name.replace(/\n/g, ' ');
+                }).concat([nodeName.replace(/\n/g, ' ')]);
+            }
+            
+            if (fullPath && fullPath.length > 0) {
+                var pathStr = fullPath.join(' → ');
+                document.getElementById('pathText').innerHTML = '<strong>' + pathStr + '</strong>';
+            } else {
+                document.getElementById('pathText').innerHTML = '<strong>' + nodeName.replace(/\n/g, ' ') + '</strong> <span style="opacity:0.7">(路径信息获取失败)</span>';
+            }
+            
+            // 触发高亮效果 - dispatchAction 来高亮当前节点及其祖先
+            myChart.dispatchAction({
+                type: 'highlight',
+                seriesIndex: 0,
+                dataIndex: params.dataIndex
+            });
+        });
+        
+        // 鼠标移出时取消高亮
+        myChart.on('mouseleave', function (params) {
+            myChart.dispatchAction({
+                type: 'downplay',
+                seriesIndex: 0
+            });
+        });
+
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+    </script>
+</body>
+</html>

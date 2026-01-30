@@ -211,3 +211,52 @@ sample_tickers = []
 
 # df_winners = run_screener(sample_tickers)
 # print(df_winners)
+
+
+
+v3
+
+
+# 逻辑伪代码示例
+
+class VCPScreener:
+    def __init__(self, df):
+        self.df = df
+        self.peaks =
+        self.troughs =
+
+    def check_trend_template(self):
+        """实现第2节中的8条均线规则"""
+        # 计算SMA
+        self.df = self.df['Close'].rolling(window=50).mean()
+        self.df = self.df['Close'].rolling(window=200).mean()
+        # ... 其他计算
+
+        # 逻辑判断
+        c1 = self.df['Close'] > self.df
+        c2 = self.df > self.df
+        # ... 200日线斜率检查
+        return c1 & c2 & ...
+
+    def find_vcp_pattern(self):
+        """实现第3节的峰值检测与收缩逻辑"""
+        # 使用scipy.signal.find_peaks
+        peaks_indices, _ = find_peaks(self.df['High'], distance=10, prominence=self.df * 0.5)
+
+        # 寻找谷值并计算深度
+        contractions =
+        for i in range(len(peaks_indices) - 1):
+            peak_val = self.df['High'].iloc[peaks_indices[i]]
+            # 在两个峰值之间找最低点
+            trough_val = self.df['Low'].iloc[peaks_indices[i]:peaks_indices[i + 1]].min()
+            depth = (peak_val - trough_val) / peak_val
+            contractions.append(depth)
+
+        # 验证 T1 > T2 > T3 逻辑
+        if self.validate_contraction_sequence(contractions):
+            return True
+        return False
+
+    def check_volume(self):
+        """实现第4节的成交量枯竭检查"""
+        # ...
