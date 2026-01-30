@@ -1,9 +1,20 @@
-﻿执行前获取最新当前时间
-对任何问题先规划再执行
-默认使用虚拟环境 data_analysis
-中文描述优先
-执行遇到问题将经验教训写回本文件 Lessons
-避免中文乱码：本文件必须使用 UTF-8（带 BOM）编码保存，编辑时保持编码一致。
+﻿## Content input and output
+- Always use 'chcp 65001' before running shell commands that produce text output on Windows to ensure UTF-8 encoding and avoid garbled characters.
+
+# Agent 命令执行环境规范
+
+- 执行命令请始终优先选择 **PowerShell 7（pwsh.exe）**，而不是旧版的 **powershell.exe**。
+- 这样能保证命令执行全部采用 UTF-8 编码，避免中文乱码问题及 BOM 错误。
+- 请勿使用 powershell.exe，确保兼容新特性和中文无乱码。
+
+# Agent 执行前准备
+
+- 执行前获取最新当前时间
+- 对任何问题先规划再执行
+- 默认使用虚拟环境 data_analysis
+- 中文描述优先
+- 执行遇到问题将经验教训写回本文件 Lessons
+- 避免中文乱码：本文件必须使用 UTF-8（带 BOM）编码保存，编辑时保持编码一致。
 
 # Stock-Quant Codex 代码生成规范
 
@@ -264,12 +275,17 @@ python ./tools/search_engine.py "your search keywords"
 - 任何可复用的经验（尤其是你犯错后修复的经验）写入 `Lessons`。
 
 ## Scratchpad
+## Scratchpad
 
-- [ ] 任务描述：
-- [ ] 计划步骤：
-- [ ] 进度更新：
+- [X] 任务描述：回答 PowerShell 7 如何设置环境变量
+- [X] 计划步骤：1) 区分临时/持久与用户/系统范围 2) 给出常用 pwsh 命令 3) 补充查看/生效说明
+- [X] 进度更新：已给出 PowerShell 7 环境变量设置方法
 
 ## Lessons
+
+- After generating Chinese text, verify files for mojibake ("?", "?", "?", "?") and re-save as UTF-8 with BOM using Python if needed.
+
+- web_scraper.py 使用 response.body + charset 解析后仍可能乱码；需检查是否被二次转码或改用 response.text()/requests+chardet 专门处理 GBK。
 
 - Windows 下 git filter-branch 可能因脚本执行/路径问题报 "cd: write error: No error" 并超时，必要时改用交互式 rebase 移除敏感文件。
 
@@ -288,13 +304,11 @@ python ./tools/search_engine.py "your search keywords"
 
 - 通过 PowerShell 管道传入含中文的脚本可能被系统代码页替换为问号；写文件时先设置 OutputEncoding 为 UTF-8。
 
-## Project Lessons
 
 - AGENTS.md 等中文规则文件必须使用 UTF-8（带 BOM）保存，避免 PowerShell/编辑器默认编码导致乱码。
 - copilot-instructions.md 必须使用 UTF-8（带 BOM）保存，必要时用 python 直接写入避免乱码。
 - 虚拟环境命名为 data_analysis，避免与其他项目冲突。
 
-# Lessons
 - On Windows, conda run can crash printing stdout with Unicode (GBK encoding); sanitize output or force UTF-8.
 - 更新 CLI 或测试后，先用 data_analysis 环境运行 tools/cli_smoke.py 验证（conda run -n data_analysis python tools/cli_smoke.py）。
 - tools/search_engine.py uses duckduckgo_search (now renamed to ddgs) and may return no results; also non-ASCII queries can appear garbled in PowerShell.
@@ -303,3 +317,4 @@ python ./tools/search_engine.py "your search keywords"
 - Context7 API key (CONTEXT7_API_KEY) is not set, so docs lookup via context7 is unavailable.
 - Gemini call via google-generativeai can warn deprecation (use google.genai) and fail with WinError 10060 (connection timeout).
 - 更新 CLI 或测试后，先用 data_analysis 环境运行 tools/cli_smoke.py 验证（conda run -n data_analysis python tools/cli_smoke.py）。
+- 生成中文相关的内容之后都需要自己检查一遍是否有出现乱码全是?的问题，发现后修正

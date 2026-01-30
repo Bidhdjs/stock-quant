@@ -1,4 +1,4 @@
-# 计划：Stock-Quant 稳定性、CLI 迁移、数据源与策略分析
+﻿# 计划：Stock-Quant 稳定性、CLI 迁移、数据源与策略分析
 
 **生成日期**：2026-01-30  
 **复杂度**：高
@@ -21,7 +21,7 @@
 - `python -m pytest -m mock_only`
 - `python -m core.cli data fetch ...`（输出符合统一 schema）
 
-### 任务 1.1：统一数据输出 schema 与校验器
+### [X] 任务 1.1：统一数据输出 schema 与校验器
 - **位置**：`core/stock/manager_common.py`（新增或扩展），`docs/`
 - **说明**：定义统一字段：`date, open, high, low, close, volume, amount, stock_code, stock_name, market`；提供校验/归一化函数。
 - **依赖**：无
@@ -30,7 +30,7 @@
   - 缺失成交量时自动填 0 并输出提示日志。
 - **验证**：`test/test_data_sources_mock.py` 新增用例。
 
-### 任务 1.2：数据源稳定性与回退策略
+### [X] 任务 1.2：数据源稳定性与回退策略
 - **位置**：`core/stock/manager_akshare.py`, `core/stock/manager_yfinance.py`, `core/stock/manager_sina.py`, `core/stock/manager_tushare.py`, `core/stock/manager_baostock.py`
 - **说明**：定义稳定优先的回退顺序；当某数据源失败时自动降级到下一数据源。
 - **依赖**：任务 1.1
@@ -39,7 +39,7 @@
   - 明确日志记录（含数据源名与原因）。
 - **验证**：mock-only 失败模拟测试。
 
-### 任务 1.3：成交量缺失提示与补齐策略
+### [X] 任务 1.3：成交量缺失提示与补齐策略
 - **位置**：`core/stock/manager_common.py`，`core/stock/realtime_types.py`
 - **说明**：美股为主，缺失成交量填 0，并写明“成交量缺失”提示；为后续补齐预留接口。
 - **依赖**：任务 1.1
@@ -47,7 +47,7 @@
   - 统一行为：缺失则填 0 + log 提示。
 - **验证**：mock-only 测试覆盖。
 
-### 任务 1.4：数据缓存与本地存储规范
+### [X] 任务 1.4：数据缓存与本地存储规范
 - **位置**：`settings.py`, `data/`
 - **说明**：规范数据存储路径；重复抓取可重用本地 CSV。
 - **依赖**：任务 1.1
@@ -61,7 +61,7 @@
 - `python -m core.cli data fetch ...`
 - `python -m core.cli backtest ...`（输出 CSV + HTML）
 
-### 任务 2.1：设计 CLI 命令与参数
+### [X] 任务 2.1：设计 CLI 命令与参数
 - **位置**：`core/cli.py`（新增），`README.md`
 - **说明**：最小命令集：`data fetch`、`backtest`、`signals analyze`（可选）、`strategy list`。
 - **依赖**：Sprint 1
@@ -69,7 +69,7 @@
   - CLI 参数清晰，尽量少必填项。
 - **验证**：README 用法示例。
 
-### 任务 2.2：实现 CLI 入口与输出
+### [X] 任务 2.2：实现 CLI 入口与输出
 - **位置**：`core/cli.py`, `core/quant/quant_manage.py`, `core/visualization/visual_tools_plotly.py`
 - **说明**：调用现有回测逻辑，输出 CSV/HTML；HTML 用于网页图表展示。
 - **依赖**：任务 2.1
@@ -77,7 +77,7 @@
   - CLI 不依赖前端和定时任务。
 - **验证**：CLI 命令成功运行并生成输出文件。
 
-### 任务 2.3：前端/定时任务兼容性隔离
+### [ ] 任务 2.3：前端/定时任务兼容性隔离
 - **位置**：`frontend/frontend_app.py`, `core/task/task_timer.py`, `core/task/task_timer_script.py`
 - **说明**：保留代码，确保不作为默认入口；必要时做懒加载或隔离导入。
 - **依赖**：任务 2.2

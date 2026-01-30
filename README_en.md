@@ -1,4 +1,4 @@
-[English](README_en.md) | [简体中文](README.md)
+﻿[English](README_en.md) | [简体中文](README.md)
 
 ---
 # Stock Quant - Local Backtest
@@ -168,11 +168,11 @@ in real trading. We do not assume any trading risks, and all consequences are at
 ## CLI Quickstart
 
 ```bash
-# Fetch historical data and cache
-python -m core.cli data fetch --market US --code AAPL --start 2026-01-01 --end 2026-01-30
+# Fetch historical data and cache (optional --preferred for source priority)
+python -m core.cli data fetch --market US --code AAPL --start 2026-01-01 --end 2026-01-30 --preferred yfinance,akshare
 
-# Backtest (use local CSV)
-python -m core.cli backtest --csv data/stock/akshare/US.AAPL_AAPL_20211126_20251124.csv --strategy EnhancedVolumeStrategy
+# Backtest (use local CSV, optional --cash for initial capital)
+python -m core.cli backtest --csv data/stock/akshare/US.AAPL_AAPL_20211126_20251124.csv --strategy EnhancedVolumeStrategy --cash 5000000
 
 # List strategies
 python -m core.cli strategy list

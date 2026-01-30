@@ -1,4 +1,4 @@
-[English](README_en.md) | [简体中文](README.md)
+﻿[English](README_en.md) | [简体中文](README.md)
 
 ---
 # 股票量化 - 本地回测
@@ -145,6 +145,25 @@ if __name__ == "__main__":
 
 ![strategy_manage](https://zhaoxusun.github.io/stock-quant/resource/img/strategy_manage.png)
 
+## CLI 快速开始
+
+> 推荐在 `data_analysis` 环境中执行。
+
+### 1. 拉取数据（mock-only 也可用本地缓存）
+```bash
+python -m core.cli data fetch --market US --code AAPL --start 2026-01-01 --end 2026-01-30 --preferred yfinance,akshare
+```
+
+### 2. 运行回测（CSV + HTML）
+```bash
+python -m core.cli backtest --csv data/stock/akshare/US.AAPL_AAPL_20211126_20251124.csv --strategy EnhancedVolumeStrategy --cash 5000000
+```
+
+### 3. 查看策略列表
+```bash
+python -m core.cli strategy list
+```
+
 
 ## 版本发布记录
 [版本发布记录](docs/ReleaseNote.md)
@@ -153,15 +172,4 @@ if __name__ == "__main__":
 
 声明：策略仅用于学习和研究，不建议在真实交易中使用，不承担任何交易风险，后果自负
 
-## CLI ????
 
-```bash
-# ?????????
-python -m core.cli data fetch --market US --code AAPL --start 2026-01-01 --end 2026-01-30
-
-# ??????? CSV?
-python -m core.cli backtest --csv data/stock/akshare/US.AAPL_AAPL_20211126_20251124.csv --strategy EnhancedVolumeStrategy
-
-# ????
-python -m core.cli strategy list
-```

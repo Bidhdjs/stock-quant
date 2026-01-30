@@ -271,6 +271,12 @@ python ./tools/search_engine.py "your search keywords"
 
 ## Lessons
 
+- After generating Chinese text, verify files for mojibake ("?", "?", "?", "?") and re-save as UTF-8 with BOM using Python if needed.
+
+- web_scraper.py 使用 response.body + charset 解析后仍可能乱码；需检查是否被二次转码或改用 response.text()/requests+chardet 专门处理 GBK。
+
+- Windows 下 git filter-branch 可能因脚本执行/路径问题报 "cd: write error: No error" 并超时，必要时改用交互式 rebase 移除敏感文件。
+
 - web_scraper.py 抓取到的中文可能乱码（站点为 GBK/GB2312）；需按页面 charset 转码或用 chardet 检测后再解析。
 
 - conda run 在 GBK 控制台输出包含特殊字符时可能触发 UnicodeEncodeError；可尝试设置 OutputEncoding 为 UTF-8 或用 CONDA_NO_PLUGINS=true。
@@ -286,13 +292,11 @@ python ./tools/search_engine.py "your search keywords"
 
 - 通过 PowerShell 管道传入含中文的脚本可能被系统代码页替换为问号；写文件时先设置 OutputEncoding 为 UTF-8。
 
-## Project Lessons
 
 - AGENTS.md 等中文规则文件必须使用 UTF-8（带 BOM）保存，避免 PowerShell/编辑器默认编码导致乱码。
 - copilot-instructions.md 必须使用 UTF-8（带 BOM）保存，必要时用 python 直接写入避免乱码。
 - 虚拟环境命名为 data_analysis，避免与其他项目冲突。
 
-# Lessons
 - On Windows, conda run can crash printing stdout with Unicode (GBK encoding); sanitize output or force UTF-8.
 - 更新 CLI 或测试后，先用 data_analysis 环境运行 tools/cli_smoke.py 验证（conda run -n data_analysis python tools/cli_smoke.py）。
 - tools/search_engine.py uses duckduckgo_search (now renamed to ddgs) and may return no results; also non-ASCII queries can appear garbled in PowerShell.
@@ -301,3 +305,4 @@ python ./tools/search_engine.py "your search keywords"
 - Context7 API key (CONTEXT7_API_KEY) is not set, so docs lookup via context7 is unavailable.
 - Gemini call via google-generativeai can warn deprecation (use google.genai) and fail with WinError 10060 (connection timeout).
 - 更新 CLI 或测试后，先用 data_analysis 环境运行 tools/cli_smoke.py 验证（conda run -n data_analysis python tools/cli_smoke.py）。
+- 生成中文相关的内容之后都需要自己检查一遍是否有出现乱码全是?的问题，发现后修正
