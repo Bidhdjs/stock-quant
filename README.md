@@ -70,8 +70,8 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
 - 前端页面上执行回测
   - 获取目标股票的历史k线数据（支持A股、港股、美股）
   - 选择要回测的股票（支持A股、港股、美股）
-  - 选择要回测的策略（当前代码中策略你可以在core/strategy/trading/volume/trading_strategy_volume.py中查看）
-    - 或者通过代码添加你的策略（参考core/strategy/trading/volume/trading_strategy_volume.py中的EnhancedVolumeStrategy类）
+  - 选择要回测的策略（当前代码中策略你可以在core/strategy/trading/volume/enhanced_volume.py中查看）
+    - 或者通过代码添加你的策略（参考core/strategy/trading/volume/enhanced_volume.py中的EnhancedVolumeStrategy类）
   - 点击“回测”按钮，即可执行回测
   - ![index_page](https://zhaoxusun.github.io/stock-quant/resource/img/index.png)
   - 回测结果会在前端页面上展示
@@ -85,7 +85,7 @@ date,open,high,low,close,volume,amount,stock_code,stock_name,market
 ```
 from common.logger import create_log
 from core.quant.quant_manage import run_backtest_enhanced_volume_strategy, run_backtest_enhanced_volume_strategy_multi
-from core.strategy.trading.volume.trading_strategy_volume import EnhancedVolumeStrategy
+from core.strategy.trading.volume.enhanced_volume import EnhancedVolumeStrategy
 from settings import stock_data_root
 
 logger = create_log('test_strategy')
@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
 #### 3.2 分析交易信号结果（回测产生的交易信号，不是交易记录）
 ```
-回测后会产生交易信号，交易信号按照信号纬度聚合，聚合后支持按照策略、股票名称、时间、信号类型筛选，支持下载html
+回测后会产生交易信号，交易信号按照信号维度聚合，聚合后支持按照策略、股票名称、时间、信号类型筛选，支持下载html
 ```
 ![demo_signal](https://zhaoxusun.github.io/stock-quant/resource/img/signal_result.png)
 

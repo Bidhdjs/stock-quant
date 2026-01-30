@@ -33,6 +33,15 @@ def _symbol_to_code(symbol: str) -> str:
     return symbol
 
 
+def _safe_change(price, yestclose):
+    """安全计算涨跌额，无法计算则返回 None。"""
+    price_value = _safe_float(price)
+    yestclose_value = _safe_float(yestclose)
+    if price_value is None or yestclose_value is None:
+        return None
+    return price_value - yestclose_value
+
+
 def get_realtime_data(symbol: str, timeout: int = 10) -> RealtimeTick:
     """
     获取网易实时行情
@@ -100,7 +109,7 @@ def shenzhen_component_index(timeout: int = 10):
     return {
         "name": data.get("name"),
         "price": _safe_float(data.get("price")),
-        "change": _safe_float(data.get("price")) - _safe_float(data.get("yestclose")),
+        "change": _safe_change(data.get("price"), data.get("yestclose")),
         "change_pct": _safe_float(data.get("percent")),
         "volume": _safe_float(data.get("volume")),
         "amount": _safe_float(data.get("turnover")),
@@ -116,7 +125,7 @@ def shanghai_component_index(timeout: int = 10):
     return {
         "name": data.get("name"),
         "price": _safe_float(data.get("price")),
-        "change": _safe_float(data.get("price")) - _safe_float(data.get("yestclose")),
+        "change": _safe_change(data.get("price"), data.get("yestclose")),
         "change_pct": _safe_float(data.get("percent")),
         "volume": _safe_float(data.get("volume")),
         "amount": _safe_float(data.get("turnover")),
