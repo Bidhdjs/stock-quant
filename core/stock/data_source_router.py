@@ -14,6 +14,7 @@ from pandas import DataFrame
 
 from common.logger import create_log
 from core.stock import manager_akshare, manager_baostock, manager_yfinance
+from core.stock.manager_common import read_cached_history, write_cached_history
 from settings import DATA_SOURCE_PRIORITY
 
 
@@ -45,6 +46,15 @@ def fetch_history_with_fallback(
     """
     order = get_data_source_priority(market, preferred)
     for source in order:
+        cached = read_cached_history(source, market, stock_code, start_date, end_date)
+        if cached is not None and not cached.empty:
+            logger.info(
+                "Data source cache hit: source=%s market=%s stock_code=%s",
+                source,
+                market,
+                stock_code,
+            )
+            return cached, source
         df = _fetch_from_source(source, market, stock_code, start_date, end_date)
         if isinstance(df, pd.DataFrame) and not df.empty:
             logger.info(
@@ -52,6 +62,18 @@ def fetch_history_with_fallback(
                 source,
                 market,
                 stock_code,
+            )
+            stock_name = None
+            if "stock_name" in df.columns and not df["stock_name"].isna().all():
+                stock_name = str(df["stock_name"].iloc[0])
+            write_cached_history(
+                df,
+                source=source,
+                market=market,
+                stock_code=stock_code,
+                stock_name=stock_name or stock_code,
+                start_date=start_date,
+                end_date=end_date,
             )
             return df, source
         logger.warning(

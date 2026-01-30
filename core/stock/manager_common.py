@@ -1,4 +1,4 @@
-﻿"""
+"""
 数据源通用标准化与校验工具。
 
 功能：
@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 import pandas as pd
 from pandas import DataFrame
@@ -87,6 +87,83 @@ def validate_stock_data_schema(df: DataFrame, required_columns: Iterable[str] | 
     required = list(required_columns or REQUIRED_COLUMNS)
     missing = [col for col in required if col not in df.columns]
     return missing
+
+
+def _normalize_code_with_market(stock_code: str, market: str) -> str:
+    code = str(stock_code)
+    if "." in code:
+        return code
+    market_key = (market or "").upper()
+    return f"{market_key}.{code}" if market_key else code
+
+
+def _sanitize_name(value: str) -> str:
+    return "".join(ch if ch.isalnum() or ch in {".", "-", "_"} else "_" for ch in str(value))
+
+
+def read_cached_history(
+    source: str,
+    market: str,
+    stock_code: str,
+    start_date: str,
+    end_date: str,
+) -> Optional[DataFrame]:
+    """
+    读取本地缓存数据（若存在）。
+    """
+    from settings import stock_data_root
+
+    code = _normalize_code_with_market(stock_code, market)
+    source_dir = stock_data_root / source
+    if not source_dir.exists():
+        return None
+    pattern = f"{code}_*_{start_date.replace('-', '')}_{end_date.replace('-', '')}.csv"
+    matches = list(source_dir.glob(pattern))
+    if not matches:
+        return None
+    file_path = matches[0]
+    try:
+        df = pd.read_csv(file_path)
+        if "date" in df.columns:
+            df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        logger.info("Cache hit: %s", file_path)
+        return df
+    except Exception as exc:
+        logger.warning("Failed to read cache %s: %s", file_path, exc)
+        return None
+
+
+def write_cached_history(
+    df: DataFrame,
+    source: str,
+    market: str,
+    stock_code: str,
+    stock_name: str,
+    start_date: str,
+    end_date: str,
+) -> Optional[str]:
+    """
+    写入本地缓存数据。
+    """
+    from settings import stock_data_root
+
+    if df is None or df.empty:
+        return None
+    code = _normalize_code_with_market(stock_code, market)
+    name = _sanitize_name(stock_name)
+    start_key = start_date.replace("-", "")
+    end_key = end_date.replace("-", "")
+    source_dir = stock_data_root / source
+    source_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{code}_{name}_{start_key}_{end_key}.csv"
+    file_path = source_dir / filename
+    try:
+        df.to_csv(file_path, index=False)
+        logger.info("Cache saved: %s", file_path)
+        return str(file_path)
+    except Exception as exc:
+        logger.warning("Failed to save cache %s: %s", file_path, exc)
+        return None
 
 
 def standardize_stock_data(df: DataFrame | None, stock_code: str, stock_name: str, market: str) -> DataFrame:

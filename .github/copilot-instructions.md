@@ -57,6 +57,7 @@ python ./tools/search_engine.py "your search keywords"
 
 
 ## Project Lessons
+- 新增测试后必须在 data_analysis 环境跑 mock-only（conda run -n data_analysis python -m pytest -m mock_only test/xxx.py），如失败需当场修复并复跑。
 - 运行 pytest 时必须使用 conda 环境 data_analysis（推荐: conda run -n data_analysis python -m pytest -m mock_only）。
 - AGENTS.md 等中文规则文件必须使用 UTF-8（带 BOM）保存，避免 PowerShell/编辑器默认编码导致乱码。
 - copilot-instructions.md 必须使用 UTF-8（带 BOM）保存，必要时用 python 直接写入避免乱码。

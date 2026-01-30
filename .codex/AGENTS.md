@@ -572,6 +572,7 @@ python ./tools/search_engine.py "your search keywords"
 ```
 
 # Lessons
+- 新增测试后必须在 data_analysis 环境跑 mock-only（conda run -n data_analysis python -m pytest -m mock_only test/xxx.py），如失败需当场修复并复跑。
 - 运行 pytest 时必须使用 conda 环境 data_analysis（推荐: conda run -n data_analysis python -m pytest -m mock_only）。
 
 
