@@ -1,26 +1,26 @@
-"""
-绩效与风险指标计算模块
-提取并迁移自 Stock_Analysis_For_Quant 的风险/收益相关 notebooks
+﻿"""
+绩效与风险指标计算模块。
+提取并迁移自 Stock_Analysis_For_Quant 的风险/收益相关 notebooks。
 
 数学原理：
-1. 年化收益/波动：基于日收益率均值与标准差缩放
-2. 最大回撤：基于净值曲线峰值回撤
-3. VaR：历史分位数/参数法/蒙特卡洛模拟
+1. 年化收益/波动：基于日收益率均值与标准差缩放。
+2. 最大回撤：基于净值曲线峰值回撤。
+3. VaR：历史分位数/参数法/蒙特卡洛模拟。
 """
+
 
 from __future__ import annotations
 
 # Front Code X
 
 # 第一组：Python 标准库
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 # 第二组：第三方库（按字母排序）
 import numpy as np
 import pandas as pd
 
 # 第三组：项目内部导入
-
 
 def _to_series(data) -> pd.Series:
     """将输入转换为 pandas Series。"""

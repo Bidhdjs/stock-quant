@@ -1,12 +1,12 @@
-"""
-组合分析与资产配置指标
-提取并迁移自 Stock_Analysis_For_Quant 的 Portfolio 相关 notebooks
+﻿"""
+组合分析工具模块。
+提供组合收益、波动、夏普、VaR、CVaR、跟踪误差等指标。
 
 数学原理：
-1. 对数收益率：log(P_t / P_{t-1})
-2. 组合方差：w^T Σ w
-3. 组合收益：均值收益与权重加权
+1. 组合收益：权重与资产收益率加权求和。
+2. 组合波动：基于协方差矩阵与权重。
 """
+
 
 from __future__ import annotations
 
@@ -20,7 +20,6 @@ import numpy as np
 import pandas as pd
 
 # 第三组：项目内部导入
-
 
 def calc_daily_log_returns(prices: pd.Series) -> pd.Series:
     """

@@ -1,11 +1,11 @@
-# 快速上手（整理版）
+﻿# 快速上手（整理版）
 
-本文基于当前仓库已存在的文档与代码结构整理而成，目标是帮助你快速跑通“数据获取 → 回测 → 结果查看”的最小闭环，并明确“数据源整合 + 成交量字段”的落点。
+本文基于当前仓库已有文档与代码整理，目标是帮助你快速走通“数据获取 → 回测 → 结果查看”的最小闭环，并明确“数据源整合 + 成交量字段”的落点。
 
 ## 1. 项目核心流程（最小闭环）
 
-1) 获取历史K线数据（CSV）
-2) 回测引擎读取CSV并运行策略
+1) 获取历史 K 线数据（CSV）
+2) 回测引擎读取 CSV 并运行策略
 3) 输出信号与图表
 
 对应入口：
@@ -24,43 +24,43 @@
 必须包含以下字段：
 - `date, open, high, low, close, volume, amount, stock_code, stock_name, market`
 
-样例见：
-- `README_en.md`（英文说明）
-- `README.md`（中文说明）
+示例见：
+- `README.md`
+- `README_en.md`
 
 注意：
-- `volume`（成交量）是策略与指标关键字段，缺失会导致策略信号不可用或失真
-- `amount`（成交额）可为空，但建议尽量填充
+- `volume` 是策略与指标关键字段，缺失会导致信号不可用或失真
+- `amount` 可为空，但建议尽量补全
 
 ## 4. 数据源现状与整合计划
 
-### 已集成的数据源（可直接使用）
+### 已集成数据源（可直接使用）
 - akshare：`core/stock/manager_akshare.py`
 - baostock：`core/stock/manager_baostock.py`
 - futu：`core/stock/manager_futu.py`
 
 ### 已实现但未完全打通
 - yfinance：`core/stock/manager_yfinance.py`
-  - 前端接口已有分支（`frontend/frontend_app.py`）
-  - 任务调度仍缺少 yfinance 入口（`core/task/task_timer.py` / `core/task/task_timer_script.py`）
-  - 前端下拉与市场联动需要补齐（`frontend/templates/index.html` / `frontend/templates/schedule.html`）
+  - 前端接口已有分支：`frontend/frontend_app.py`
+  - 任务调度仍缺少 yfinance 入口：`core/task/task_timer.py` / `core/task/task_timer_script.py`
+  - 前端下拉与市场联动需补齐：`frontend/templates/index.html` / `frontend/templates/schedule.html`
 
 ## 5. 成交量字段（volume）落点
 
 成交量在以下模块被直接使用：
-- 回测读取CSV：`core/quant/quant_manage.py`
+- 回测读取 CSV：`core/quant/quant_manage.py`
 - 指标/策略：`core/strategy/indicator/volume/`、`core/strategy/trading/volume/`
 
 建议的统一处理入口：
 - `core/stock/manager_common.py` 的 `standardize_stock_data()` 负责字段统一与补齐
-- 如果某数据源返回“成交量(手)”等列名，可在映射中补充对应关系，确保标准化后一定有 `volume`
+- 若数据源返回“成交量(手)”等列名，可在映射中补充对应关系，确保标准化后始终含 `volume`
 
-## 6. 第一阶段（数据源整合 + 成交量）
+## 6. 第一阶段目标（数据源整合 + 成交量）
 
-建议优先完成以下三件事：
-1) 任务调度支持 yfinance（`core/task/task_timer.py`、`core/task/task_timer_script.py`）
-2) 前端支持 yfinance 选择与市场限制（`frontend/templates/index.html`、`frontend/templates/schedule.html`）
-3) 成交量字段兜底校验（在 `standardize_stock_data()` 或读取CSV后增加告警）
+优先完成：
+1) 任务调度支持 yfinance：`core/task/task_timer.py` / `core/task/task_timer_script.py`
+2) 前端支持 yfinance 选择与市场限制：`frontend/templates/index.html` / `frontend/templates/schedule.html`
+3) 成交量字段兜底校验：在 `standardize_stock_data()` 或读 CSV 后增加告警
 
 ## 7. 常见文件入口索引
 
@@ -70,7 +70,7 @@
 - 前端页面：`frontend/templates/index.html`
 - 说明文档：`README.md`、`README_en.md`、`docs/解释.md`、`docs/二次开发规划.md`
 
-## 8. 新增外部数据源与指标（StockQuant 集成）
+## 8. 新增外部数据源与指标（StockQuant 迁移）
 
 - 实时行情（新浪/网易）：
   - `core/stock/manager_sina.py`
@@ -84,3 +84,7 @@
 - TA-Lib 指标封装：
   - `core/strategy/indicator/talib_indicators.py`
   - 依赖 `TA-Lib`（已加入 requirements）
+
+## 9. 测试（统一 pytest）
+
+请查看 `docs/Testing.md`，所有测试默认使用 mock_only 标记，不触发外部网络。

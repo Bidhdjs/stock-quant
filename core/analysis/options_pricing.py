@@ -1,11 +1,12 @@
-"""
-期权定价与 Greeks
-提取并迁移自 Stock_Analysis_For_Quant 的 Black-Scholes 相关 notebooks
+﻿"""
+期权定价与 Greeks 计算模块。
+包含 Black-Scholes 公式与常用希腊值计算。
 
 数学原理：
-1. Black-Scholes 模型通过 d1/d2 计算欧式期权定价
-2. Greeks 通过对价格对参数的偏导数计算
+1. Black-Scholes 模型：基于对数正态假设。
+2. Greeks：对价格对参数的一阶/二阶偏导。
 """
+
 
 from __future__ import annotations
 
@@ -18,7 +19,6 @@ from typing import Tuple
 import numpy as np
 
 # 第三组：项目内部导入
-
 
 def _norm_cdf(x: float) -> float:
     """标准正态分布 CDF。"""

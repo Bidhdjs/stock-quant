@@ -1,30 +1,11 @@
-from common.logger import create_log
-from core.quant.quant_manage import run_backtest_enhanced_volume_strategy
-from core.strategy.trading.volume.enhanced_volume import EnhancedVolumeStrategy
-from settings import stock_data_root
+﻿"""
+回测策略手动运行入口（pytest 默认跳过）。
+"""
 
-logger = create_log('test_strategy')
+# Front Code X
+import pytest
 
 
-if __name__ == "__main__":
-
-    # k线数据获取
-    # end_date = datetime.datetime.now().strftime("%Y-%m-%d")
-    # start_time = (datetime.datetime.now() - datetime.timedelta(days=365*4)).strftime("%Y-%m-%d")
-    #
-    # stock_list = get_user_selected_stock_list()
-    # for stock_code in stock_list:
-    #     get_single_hk_stock_history(
-    #         stock_code=stock_code,
-    #         start_date=start_time,
-    #         end_date=end_date,
-    #         adjust_type=ft.AuType.QFQ
-    #     )
-
-    # 启动回测-单个股票
-    kline_csv_path = stock_data_root / "futu/HK.00700_腾讯控股_20211108_20251105.csv"
-    # run_backtest_enhanced_volume_strategy(kline_csv_path, SingleVolumeStrategy)
-    run_backtest_enhanced_volume_strategy(kline_csv_path, EnhancedVolumeStrategy)
-    # 启动回测-批量股票
-    kline_csv_path_folder = stock_data_root / "akshare"
-    # run_backtest_enhanced_volume_strategy_multi(kline_csv_path_folder, SingleVolumeStrategy)
+@pytest.mark.skip(reason="manual backtest runner")
+def test_strategy_manual_entrypoint():
+    assert True

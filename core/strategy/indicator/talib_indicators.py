@@ -1,22 +1,24 @@
-"""
-TA-Lib 指标函数集合
-用于快速复用常见技术指标计算
+﻿"""
+TA-Lib 指标函数集合。
+用于快速复用常见技术指标计算。
 
 数学原理：
-1. 指标公式基于 TA-Lib 实现（如 EMA、MACD、RSI 等）
-2. 输入支持 kline 列表或 DataFrame，统一为 numpy 数组计算
+1. 指标公式基于 TA-Lib 实现（如 EMA、MACD、RSI 等）。
+2. 输入支持 kline 列表或 DataFrame，统一为 numpy 数组计算。
 """
 
+# 第一组：Python 标准库
+
+# 第二组：第三方库（按字母排序）
 import numpy as np
 
+# 第三组：项目内部导入
+
 # Front Code X
-try:
-    import talib
-except Exception as exc:  # pragma: no cover - runtime dependency
-    talib = None
-    _talib_import_error = exc
-else:
-    _talib_import_error = None
+
+
+talib = None
+_talib_import_error = None
 
 
 __all__ = [
@@ -44,6 +46,15 @@ __all__ = [
 
 def _require_talib():
     """确保 TA-Lib 可用。"""
+    global talib
+    global _talib_import_error
+    if talib is None and _talib_import_error is None:
+        try:
+            import talib as _talib  # type: ignore
+        except Exception as exc:  # pragma: no cover - runtime dependency
+            _talib_import_error = exc
+        else:
+            talib = _talib
     if talib is None:
         raise ImportError(
             "TA-Lib is required for talib_indicators. "
@@ -137,7 +148,7 @@ def EMA(length, *args, kline=None):
 
 
 def KAMA(length, *args, kline=None):
-    """计算自适应移动平均线。"""
+    """计算考夫曼自适应移动平均线。"""
     _require_talib()
     if kline is None and args:
         kline = args[-1]

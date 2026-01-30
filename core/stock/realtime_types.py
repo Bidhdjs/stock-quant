@@ -1,7 +1,8 @@
+﻿"""
+实时行情数据结构。
+用于统一不同实时数据源的输出格式。
 """
-实时行情数据结构
-用于统一不同实时数据源的输出格式
-"""
+
 
 from dataclasses import dataclass
 from typing import Optional
