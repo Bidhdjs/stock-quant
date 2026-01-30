@@ -271,6 +271,8 @@ python ./tools/search_engine.py "your search keywords"
 
 ## Lessons
 
+- Windows 下 git filter-branch 可能因脚本执行/路径问题报 "cd: write error: No error" 并超时，必要时改用交互式 rebase 移除敏感文件。
+
 - web_scraper.py 抓取到的中文可能乱码（站点为 GBK/GB2312）；需按页面 charset 转码或用 chardet 检测后再解析。
 
 - conda run 在 GBK 控制台输出包含特殊字符时可能触发 UnicodeEncodeError；可尝试设置 OutputEncoding 为 UTF-8 或用 CONDA_NO_PLUGINS=true。
