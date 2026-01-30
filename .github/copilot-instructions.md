@@ -1,121 +1,78 @@
-# Stock-Quant 项目开发规范
+﻿# Stock-Quant Copilot 配置
 
-## 核心原则
-1. **向量化优先**：处理 DataFrame 时严禁使用 for 循环，必须使用 Pandas/NumPy 的内置方法或 apply。
-2. **API 规范**：所有 Flask Route 必须包含 try-except 块，返回统一的 JSON 格式 {'success': bool, 'message': str, 'data': dict}。
-3. **中文注释**：关键算法（如 MACD, 均线策略）必须用中文解释数学原理。
+执行前获取一些最新的当前时间
+对任何问题先规划再执行
+当执行遇到任何问题把经验教训写回到copilot-instructions.md 文件中
+中文描述优先
+默认使用虚拟环境 data_analysis
+避免中文乱码：此文件必须使用 UTF-8（带 BOM）编码保存，编辑时保持编码一致。
 
-## 项目结构感知
-- 策略文件位于 `core/strategy/trading/`，必须继承 `StrategyBase`。
-- 数据清洗逻辑在 `core/stock/manager_common.py`，获取新数据源后必须调用 `standardize_stock_data`。
-- 配置文件是 `settings.py`，涉及费率和路径时优先读取此文件。
+## 项目开发规范（要点）
+1. **向量化优先**：处理 DataFrame 时禁止 `for` 遍历，优先 Pandas/NumPy 向量化或 `apply`。
+2. **API 规范**：所有 Flask Route 必须包含 try-except，返回统一 JSON：`{'success': bool, 'message': str, 'data': dict|list}`。
+3. **中文注释**：关键算法（MACD/RSI/布林带等）必须用中文解释数学原理。
+4. **标准化输出**：新增数据源后必须调用 `standardize_stock_data()`。
+5. **可视化优先**：优先使用 Plotly 输出 HTML 交互图表。
 
-## 库使用偏好
-- 绘图优先使用 Plotly (HTML交互)，而非 Matplotlib (静态)。
-- 时间处理优先使用 `common/time_key.py` 中的工具。
+## 项目结构与约定
+- 策略文件：`core/strategy/trading/`，策略类必须继承 `StrategyBase`。
+- 指标文件：`core/strategy/indicator/`，指标类必须继承 `bt.Indicator`。
+- 配置文件：`settings.py`。
+- 时间工具：`common/time_key.py`。
 
-# Instructions
-
-During your interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.github/copilot-instructions.md` file so you will not make the same mistake again. 
-
-You should also use the `.github/copilot-instructions.md` file's "scratchpad" section as a Scratchpad to organize your thoughts. Especially when you receive a new task, you should first review the content of the Scratchpad, clear old different task if necessary, first explain the task, and plan the steps you need to take to complete the task. You can use todo markers to indicate the progress, e.g.
-[X] Task 1
-[ ] Task 2
-
-Also update the progress of the task in the Scratchpad when you finish a subtask.
-Especially when you finished a milestone, it will help to improve your depth of task accomplishment to use the Scratchpad to reflect and plan.
-The goal is to help you maintain a big picture as well as the progress of the task. Always refer to the Scratchpad when you plan the next step.
+## 工作流程要求
+- 收到新任务先查看 Scratchpad，必要时清空旧任务，写出本次任务与步骤。
+- 使用 todo 标记进度：
+  - `[ ]` 未完成
+  - `[X]` 已完成
+- 完成阶段性成果及时更新 Scratchpad。
+- 任何可复用的经验（尤其是你犯错后修复的经验）写入 `Lessons`。
 
 # Tools
 
-Note all the tools are in python. So in the case you need to do batch processing, you can always consult the python files and write your own script.
+> 项目工具均为 Python 脚本，可用于批处理或自动化。
 
 ## Screenshot Verification
-
-The screenshot verification workflow allows you to capture screenshots of web pages and verify their appearance using LLMs. The following tools are available:
-
-1. Screenshot Capture:
 ```bash
 venv/bin/python tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
-```
-
-2. LLM Verification with Images:
-```bash
 venv/bin/python tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
 ```
 
-Example workflow:
-```python
-from screenshot_utils import take_screenshot_sync
-from llm_api import query_llm
-
-# Take a screenshot
-
-screenshot_path = take_screenshot_sync('https://example.com', 'screenshot.png')
-
-# Verify with LLM
-
-response = query_llm(
-    "What is the background color and title of this webpage?",
-    provider="openai",  # or "anthropic"
-    image_path=screenshot_path
-)
-print(response)
-```
-
 ## LLM
-
-You always have an LLM at your side to help you with the task. For simple tasks, you could invoke the LLM by running the following command:
-```
-venv/bin/python ./tools/llm_api.py --prompt "What is the capital of France?" --provider "anthropic"
+```bash
+venv/bin/python ./tools/llm_api.py --prompt "Your prompt" --provider "anthropic"
 ```
 
-The LLM API supports multiple providers:
-- OpenAI (default, model: gpt-4o)
-- Azure OpenAI (model: configured via AZURE_OPENAI_MODEL_DEPLOYMENT in .env file, defaults to gpt-4o-ms)
-- DeepSeek (model: deepseek-chat)
-- Anthropic (model: claude-3-sonnet-20240229)
-- Gemini (model: gemini-pro)
-- Local LLM (model: Qwen/Qwen2.5-32B-Instruct-AWQ)
-
-But usually it's a better idea to check the content of the file and use the APIs in the `tools/llm_api.py` file to invoke the LLM if needed.
-
-## Web browser
-
-You could use the `tools/web_scraper.py` file to scrape the web.
-```
+## Web Browser
+```bash
 venv/bin/python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
 ```
-This will output the content of the web pages.
 
-## Search engine
-
-You could use the `tools/search_engine.py` file to search the web.
-```
+## Search Engine
+```bash
 venv/bin/python ./tools/search_engine.py "your search keywords"
 ```
-This will output the search results in the following format:
-```
-URL: https://example.com
-Title: This is the title of the search result
-Snippet: This is a snippet of the search result
-```
-If needed, you can further use the `web_scraper.py` file to scrape the web page content.
 
 # Lessons
 
 ## User Specified Lessons
-
 - You have a python venv in ./venv. Use it.
 - Include info useful for debugging in the program output.
 - Read the file before you try to edit it.
 - Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
 
 ## Cursor learned
-
 - For search results, ensure proper handling of different character encodings (UTF-8) for international queries
 - Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
 - When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
 - Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
 
+## Project Lessons
+- AGENTS.md 等中文规则文件必须使用 UTF-8（带 BOM）保存，避免 PowerShell/编辑器默认编码导致乱码。
+- copilot-instructions.md 必须使用 UTF-8（带 BOM）保存，必要时用 python 直接写入避免乱码。
+
 # Scratchpad
+
+- [X] 任务描述：执行 Sprint 1（数据源稳定 + mock-only 测试补强）
+- [X] 计划步骤：1) 评估现有数据源与标准化流程 2) 增强标准化/校验与缺失成交量提示 3) 加 mock-only 测试 4) 运行 mock-only 测试
+- [ ] 进度更新：已完成标准化与校验增强、添加测试；等待安装 pytest 后运行 mock-only 测试
