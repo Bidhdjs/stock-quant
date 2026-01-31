@@ -750,6 +750,14 @@ def create_trading_chart(chart_title_prefix, df, valid_signals, valid_trades, ho
     返回:
         Plotly图表对象
     """
+    # 处理非交易日空白：隐藏周末 + 缺失交易日（如节假日）
+    missing_dates = []
+    if df is not None and not df.empty and 'close' in df.columns:
+        missing_mask = df['close'].isna()
+        if missing_mask.any():
+            missing_index = df.index[missing_mask]
+            # 仅保留工作日缺失（节假日/停牌等），周末由 rangebreaks bounds 处理
+            missing_dates = [d for d in missing_index if d.weekday() < 5]
     # 创建五个垂直排列的图表
     fig = make_subplots(
         rows=6, cols=1,
@@ -819,6 +827,15 @@ def create_trading_chart(chart_title_prefix, df, valid_signals, valid_trades, ho
         ),
         row=4, col=1
     )
+    if missing_dates:
+        fig.update_xaxes(
+            rangebreaks=[
+                dict(bounds=["sat", "mon"]),
+                dict(values=missing_dates),
+            ]
+        )
+    else:
+        fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])])
 
     # 5. 添加总资产变化曲线和初始资金参考线
     fig.add_trace(
