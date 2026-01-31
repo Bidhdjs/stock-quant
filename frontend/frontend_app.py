@@ -14,7 +14,6 @@ from datetime import datetime
 from functools import wraps
 
 from core.signal.signal_handler import signal_get, signals_analyze
-from core.task.task_timer import schedule_tasks
 from core.strategy.indicator_manager import global_indicator_manager
 from core.task.task_manager import TaskManager
 from flask import Flask, render_template, request, send_from_directory
@@ -37,6 +36,26 @@ logger = create_log('quant_frontend')
 task_manager = TaskManager()
 # 支持的数据源
 DATA_SOURCES = ['akshare', 'baostock', 'futu', 'yfinance']
+ENABLE_SCHEDULE_TASKS = os.getenv('ENABLE_SCHEDULE_TASKS', 'false').strip().lower() in {'1', 'true', 'yes'}
+
+
+def start_task_scheduler_if_enabled():
+    if not ENABLE_SCHEDULE_TASKS:
+        logger.info("任务定时器未启用（ENABLE_SCHEDULE_TASKS=false）")
+        return
+    try:
+        from core.task.task_timer import schedule_tasks
+    except Exception as e:
+        logger.warning(f"任务定时器依赖加载失败，已跳过启动: {e}")
+        return
+    # 在Flask debug模式下，避免在子进程中重复启动任务调度器
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        task_process = multiprocessing.Process(target=schedule_tasks)
+        task_process.daemon = True  # 设置为守护进程，主进程结束时自动终止
+        task_process.start()
+        logger.info("启动任务定时器")
+    else:
+        logger.info("在Flask子进程中，不启动任务定时器")
 
 
 def log_request_details(f):
@@ -1097,17 +1116,7 @@ def check_task_exists(task_id):
 if __name__ == '__main__':
     # 在开发环境中运行，生产环境应使用WSGI服务器
     try:
-        # 在Flask debug模式下，避免在子进程中重复启动任务调度器
-        import os
-        # 检查是否为主进程（Flask会设置WERKZEUG_RUN_MAIN环境变量标识子进程）
-        if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-            # 创建进程启动schedule_tasks
-            task_process = multiprocessing.Process(target=schedule_tasks)
-            task_process.daemon = True  # 设置为守护进程，主进程结束时自动终止
-            task_process.start()
-            logger.info("启动任务定时器")
-        else:
-            logger.info("在Flask子进程中，不启动任务定时器")
+        start_task_scheduler_if_enabled()
     except KeyboardInterrupt:
         logger.info("用户中断，停止任务定时器")
     except Exception as e:

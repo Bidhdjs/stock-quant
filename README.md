@@ -164,6 +164,11 @@ python -m core.cli backtest --csv data/stock/akshare/US.AAPL_AAPL_20211126_20251
 python -m core.cli strategy list
 ```
 
+### 4. VCP 信号分析（CSV -> CSV/HTML）
+```bash
+python -m core.cli vcp analyze --csv data/stock/akshare/US.AAPL_AAPL_20211126_20251124.csv
+```
+
 
 ## 版本发布记录
 [版本发布记录](docs/ReleaseNote.md)

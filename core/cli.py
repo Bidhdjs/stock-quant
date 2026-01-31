@@ -16,6 +16,7 @@ from typing import Iterable
 import pandas as pd
 
 from common.logger import create_log
+from core.analysis.migrations.vcp_tools import build_vcp_signal_frame
 from core.quant.quant_manage import run_backtest_enhanced_volume_strategy
 from core.stock.data_source_router import fetch_history_with_fallback
 from core.stock.manager_common import write_cached_history
@@ -114,6 +115,44 @@ def cmd_strategy_list() -> int:
     return 0
 
 
+def _write_html_table(df: pd.DataFrame, html_path: Path, title: str) -> None:
+    html = [
+        "<html><head><meta charset='utf-8'>",
+        f"<title>{title}</title>",
+        "<style>body{font-family:Arial,Helvetica,sans-serif;margin:24px;}table{border-collapse:collapse;width:100%;}",
+        "th,td{border:1px solid #ddd;padding:8px;text-align:right;}th{text-align:center;background:#f5f5f5;}</style>",
+        "</head><body>",
+        f"<h2>{title}</h2>",
+        df.to_html(index=False, escape=False),
+        "</body></html>",
+    ]
+    html_path.parent.mkdir(parents=True, exist_ok=True)
+    html_path.write_text("\n".join(html), encoding="utf-8")
+
+
+def cmd_vcp_analyze(args: argparse.Namespace) -> int:
+    csv_path = Path(args.csv)
+    if not csv_path.exists():
+        logger.error("CSV 不存在：%s", csv_path)
+        return 1
+    df = pd.read_csv(csv_path)
+    df.columns = [str(col).strip().lower() for col in df.columns]
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    result = build_vcp_signal_frame(df)
+    output_dir = Path(args.output_dir) if args.output_dir else csv_path.parent
+    output_dir.mkdir(parents=True, exist_ok=True)
+    out_csv = output_dir / f"{csv_path.stem}_vcp_signals.csv"
+    out_html = output_dir / f"{csv_path.stem}_vcp_signals.html"
+    result.to_csv(out_csv, index=False)
+    _write_html_table(result.tail(200), out_html, title="VCP Signals (Latest 200)")
+    logger.info("VCP 输出：%s", out_csv)
+    logger.info("VCP 报告：%s", out_html)
+    print(out_csv)
+    print(out_html)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Stock-Quant CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -143,6 +182,13 @@ def build_parser() -> argparse.ArgumentParser:
     strategy_sub = strategy.add_subparsers(dest="strategy_cmd", required=True)
     list_cmd = strategy_sub.add_parser("list", help="列出策略")
     list_cmd.set_defaults(func=lambda args: cmd_strategy_list())
+
+    vcp = subparsers.add_parser("vcp", help="VCP 分析")
+    vcp_sub = vcp.add_subparsers(dest="vcp_cmd", required=True)
+    analyze_cmd = vcp_sub.add_parser("analyze", help="VCP 信号分析（CSV -> CSV/HTML）")
+    analyze_cmd.add_argument("--csv", required=True, help="本地 CSV 路径")
+    analyze_cmd.add_argument("--output-dir", help="输出目录（默认 CSV 同级）")
+    analyze_cmd.set_defaults(func=cmd_vcp_analyze)
 
     return parser
 
