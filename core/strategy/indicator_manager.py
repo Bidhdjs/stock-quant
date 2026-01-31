@@ -22,48 +22,29 @@ class IndicatorManager:
 
     def _auto_discover_indicators(self):
         """自动发现并注册所有继承自bt.Indicator的信号指标类"""
-        # 获取指标目录路径
-        indicator_dir = os.path.join(os.path.dirname(__file__), 'indicator')
+        indicator_dir = os.path.join(os.path.dirname(__file__), "indicator")
+        if not os.path.exists(indicator_dir):
+            return
 
-        # 遍历indicator目录下的所有子模块
-        for _, module_name, _ in pkgutil.iter_modules([indicator_dir]):
-            # 跳过common模块
-            if module_name == 'common' or module_name.startswith('__'):
+        try:
+            indicator_pkg = importlib.import_module("core.strategy.indicator")
+        except Exception as e:
+            logger.error(f"Failed to load indicator package: {str(e)}")
+            return
+
+        for module_info in pkgutil.walk_packages(indicator_pkg.__path__, indicator_pkg.__name__ + "."):
+            module_name = module_info.name
+            if module_name.endswith(".common") or module_name.split(".")[-1].startswith("__"):
                 continue
-
             try:
-                # 构建完整模块路径
-                full_module_path = f'core.strategy.indicator.{module_name}'
-                module = importlib.import_module(full_module_path)
-
-                # 遍历模块中的所有属性，查找继承自bt.Indicator的类
+                module = importlib.import_module(module_name)
                 for attr_name in dir(module):
                     attr = getattr(module, attr_name)
-                    # 检查是否为类，是否继承自bt.Indicator，且不是bt.Indicator本身
                     if isinstance(attr, type) and issubclass(attr, bt.Indicator) and attr != bt.Indicator:
                         self.register_indicator(attr)
             except Exception as e:
                 logger.error(f"Failed to load module {module_name}: {str(e)}")
                 continue
-
-        # 特殊处理volume子目录
-        volume_dir = os.path.join(indicator_dir, 'volume')
-        if os.path.exists(volume_dir):
-            for _, module_name, _ in pkgutil.iter_modules([volume_dir]):
-                if module_name.startswith('__'):
-                    continue
-
-                try:
-                    full_module_path = f'core.strategy.indicator.volume.{module_name}'
-                    module = importlib.import_module(full_module_path)
-
-                    for attr_name in dir(module):
-                        attr = getattr(module, attr_name)
-                        if isinstance(attr, type) and issubclass(attr, bt.Indicator) and attr != bt.Indicator:
-                            self.register_indicator(attr)
-                except Exception as e:
-                    logger.error(f"Failed to load volume indicator module {module_name}: {str(e)}")
-                    continue
 
     def register_indicator(self, indicator_class):
         """注册一个信号指标类"""

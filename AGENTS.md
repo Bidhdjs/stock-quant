@@ -14,7 +14,7 @@
 - 默认使用虚拟环境 data_analysis
 - 中文描述优先
 - 执行遇到问题将经验教训写回本文件 Lessons
-- 避免中文乱码：本文件必须使用 UTF-8（带 BOM）编码保存，编辑时保持编码一致。
+- 避免中文乱码：本文件必须使用 UTF-8 编码保存，编辑时保持编码一致。
 
 # Stock-Quant Codex 代码生成规范
 
@@ -277,13 +277,25 @@ python ./tools/search_engine.py "your search keywords"
 ## Scratchpad
 ## Scratchpad
 
-- [X] 任务描述：回答 PowerShell 7 如何设置环境变量
-- [X] 计划步骤：1) 区分临时/持久与用户/系统范围 2) 给出常用 pwsh 命令 3) 补充查看/生效说明
-- [X] 进度更新：已给出 PowerShell 7 环境变量设置方法
+- [X] 任务描述：重构 Plotly HTML 报告样式（参考券商终端/TradingView）
+- [X] 计划步骤：1) 审计现有输出 2) 生成改造计划 3) 实施视觉改造
+- [X] 进度更新：已完成 HTML 模板与 Plotly 主题改造
+
+- [X] 任务描述：优化 HTML 报告性能与样式（参考 Figma/模板）
+- [X] 计划步骤：1) 搜索模板/灵感 2) 定位现有 HTML & 样式 3) 设计优化与实现 4) 自检输出
+- [X] 进度更新：已完成模板检索、页面结构与样式重构
+
+- [X] 任务描述：执行性能优化（CSS 拆分/回退/字体精简）
+- [X] 计划步骤：1) 识别 result-viewer 专属样式 2) 拆分 CSS 并接入 3) 加入回退与轻量优化 4) 自检
+- [X] 进度更新：已完成拆分与回退配置
+
+- [X] 任务描述：参考加密货币 UI 风格优化页面样式
+- [X] 计划步骤：1) 检索加密货币 UI 设计 2) 提取配色与组件风格 3) 调整本项目页面样式 4) 自检
+- [X] 进度更新：已完成风格提炼与样式落地
 
 ## Lessons
 
-- After generating Chinese text, verify files for mojibake ("?", "?", "?", "?") and re-save as UTF-8 with BOM using Python if needed.
+- After generating Chinese text, verify files for mojibake ("?", "?", "?", "?") and re-save as UTF-8 using Python if needed.
 
 - web_scraper.py 使用 response.body + charset 解析后仍可能乱码；需检查是否被二次转码或改用 response.text()/requests+chardet 专门处理 GBK。
 
@@ -306,8 +318,8 @@ python ./tools/search_engine.py "your search keywords"
 - 通过 PowerShell 管道传入含中文的脚本可能被系统代码页替换为问号；写文件时先设置 OutputEncoding 为 UTF-8。
 
 
-- AGENTS.md 等中文规则文件必须使用 UTF-8（带 BOM）保存，避免 PowerShell/编辑器默认编码导致乱码。
-- copilot-instructions.md 必须使用 UTF-8（带 BOM）保存，必要时用 python 直接写入避免乱码。
+- AGENTS.md 等中文规则文件必须使用 UTF-8 保存，避免 PowerShell/编辑器默认编码导致乱码。
+- copilot-instructions.md 必须使用 UTF-8 保存，必要时用 python 直接写入避免乱码。
 - 虚拟环境命名为 data_analysis，避免与其他项目冲突。
 
 - On Windows, conda run can crash printing stdout with Unicode (GBK encoding); sanitize output or force UTF-8.
@@ -319,3 +331,8 @@ python ./tools/search_engine.py "your search keywords"
 - Gemini call via google-generativeai can warn deprecation (use google.genai) and fail with WinError 10060 (connection timeout).
 - 更新 CLI 或测试后，先用 data_analysis 环境运行 tools/cli_smoke.py 验证（conda run -n data_analysis python tools/cli_smoke.py）。
 - 生成中文相关的内容之后都需要自己检查一遍是否有出现乱码全是?的问题，发现后修正
+
+- 在 pwsh -Command 里用 Here-String 写入 CSS 时，避免双引号包裹命令导致解析出错；改用单引号包裹 -Command 并配合 @" ... "@。
+- PowerShell 批量替换含 `&` 或 `[regex]` 的字符串时容易解析报错，优先用 apply_patch 或逐文件替换。
+- PowerShell 里使用 rg 的复杂 pattern（含 `|` 或中文）要用单引号包裹，避免被解析为命令。
+- gitmcp.py 在 Windows 下用 subprocess 调用 `npx` 会报找不到文件；需要改为 `npx.cmd` 或用 cmd.exe /c 方式。

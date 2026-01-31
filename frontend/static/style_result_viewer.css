@@ -1,0 +1,102 @@
+.result-viewer .content {
+    width: min(1600px, 100% - 2rem);
+    padding: 0 0.5rem;
+}
+
+.result-hero {
+    padding: 1.4rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(15, 23, 42, 0.9));
+    border: 1px solid rgba(34, 211, 238, 0.35);
+    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.4);
+    display: grid;
+    gap: 0.65rem;
+    position: relative;
+    animation: fadeLift 0.7s ease both;
+}
+
+.result-hero .hero-title {
+    font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+    font-weight: 700;
+    font-family: var(--font-display);
+}
+
+.result-hero .hero-subtitle {
+    color: var(--text-2);
+    font-size: 0.95rem;
+}
+
+.hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.pill {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    background: rgba(34, 211, 238, 0.16);
+    color: #cffafe;
+    border: 1px solid rgba(34, 211, 238, 0.35);
+}
+
+.pill-outline {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--border-1);
+}
+
+.chart-shell {
+    border-radius: 14px;
+    border: 1px solid var(--border-1);
+}
+
+.plot-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.result-viewer .card-body {
+    padding: 1rem;
+}
+
+.result-viewer .plotly-container,
+.result-viewer .plot-container,
+.result-viewer .svg-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 auto;
+}
+
+.result-viewer .plotly,
+.result-viewer div.js-plotly-plot,
+.result-viewer .main-svg {
+    margin: 0 auto !important;
+}
+
+.floating-actions {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 1000;
+}
+
+@keyframes fadeLift {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .floating-actions {
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+    }
+
+    .floating-actions .btn {
+        width: 100%;
+    }
+}

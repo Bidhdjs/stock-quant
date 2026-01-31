@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import numpy as np
 import backtrader as bt
+import pandas as pd
 
+from core.analysis.indicators.vcp import VCPParams, evaluate_vcp
 from core.strategy.indicator.common import SignalRecordManager
 
 
@@ -34,6 +36,7 @@ class VCPIndicator(bt.Indicator):
         ("lookback_period", 252),
         ("vol_short_period", 5),
         ("vol_long_period", 30),
+        ("progress_threshold", 1.0),
     )
 
     plotinfo = dict(subplot=False)
@@ -41,13 +44,19 @@ class VCPIndicator(bt.Indicator):
 
     def __init__(self):
         self.signal_record_manager = SignalRecordManager()
-        self.ma_50 = bt.indicators.SMA(self.data.close, period=self.p.ma_50_period)
-        self.ma_150 = bt.indicators.SMA(self.data.close, period=self.p.ma_150_period)
-        self.ma_200 = bt.indicators.SMA(self.data.close, period=self.p.ma_200_period)
-        self.week_52_low = bt.indicators.Lowest(self.data.low, period=252)
-        self.week_52_high = bt.indicators.Highest(self.data.high, period=252)
-        self.vol_ma_short = bt.indicators.SMA(self.data.volume, period=self.p.vol_short_period)
-        self.vol_ma_long = bt.indicators.SMA(self.data.volume, period=self.p.vol_long_period)
+        self._min_len = max(
+            self.p.ma_200_period + self.p.ma_trend_period, self.p.local_extrema_order * 2 + 1
+        )
+        self.addminperiod(self._min_len)
+
+    def _build_feature_frame(self, lookback: int) -> pd.DataFrame:
+        data = {
+            "high": np.array(self.data.high.get(size=lookback)),
+            "low": np.array(self.data.low.get(size=lookback)),
+            "close": np.array(self.data.close.get(size=lookback)),
+            "volume": np.array(self.data.volume.get(size=lookback)),
+        }
+        return pd.DataFrame(data)
 
     def next(self):
         self.lines.stage2_pass[0] = 0
@@ -56,16 +65,35 @@ class VCPIndicator(bt.Indicator):
         self.lines.max_contraction[0] = np.nan
         self.lines.min_contraction[0] = np.nan
 
-        if len(self) < self.p.ma_200_period + self.p.ma_trend_period:
+        if len(self) < self._min_len:
+            return
+        lookback = min(len(self), self.p.lookback_period)
+        df = self._build_feature_frame(lookback)
+        params = VCPParams(
+            ma_50_period=self.p.ma_50_period,
+            ma_150_period=self.p.ma_150_period,
+            ma_200_period=self.p.ma_200_period,
+            ma_trend_period=self.p.ma_trend_period,
+            local_extrema_order=self.p.local_extrema_order,
+            min_contractions=self.p.min_contractions,
+            max_contractions=self.p.max_contractions,
+            max_contraction_depth=self.p.max_contraction_depth,
+            min_contraction_depth=self.p.min_contraction_depth,
+            min_weeks=self.p.min_weeks,
+            lookback_period=self.p.lookback_period,
+            vol_short_period=self.p.vol_short_period,
+            vol_long_period=self.p.vol_long_period,
+        )
+        vcp_result = evaluate_vcp(df, params)
+
+        self.lines.stage2_pass[0] = 1 if vcp_result["stage2_pass"] else 0
+        if not vcp_result["stage2_pass"]:
             return
 
-        stage2 = self._check_stage2()
-        self.lines.stage2_pass[0] = 1 if stage2 else 0
-        if not stage2:
+        if vcp_result["progress"] < self.p.progress_threshold:
             return
 
-        vcp_result = self._check_vcp()
-        if not vcp_result["is_vcp"]:
+        if not vcp_result["is_vcp"] and self.p.progress_threshold >= 1.0:
             return
 
         self.lines.vcp_signal[0] = self.data.close[0]
@@ -78,105 +106,3 @@ class VCPIndicator(bt.Indicator):
             "vcp_buy",
             f"VCP形态: {vcp_result['num_contractions']}次收缩",
         )
-
-    def _check_stage2(self) -> bool:
-        close = self.data.close[0]
-        cond1 = close > self.ma_50[0] and close > self.ma_150[0] and close > self.ma_200[0]
-        cond2 = self.ma_50[0] > self.ma_150[0] > self.ma_200[0]
-        ma200_slope = self.ma_200[0] - self.ma_200[-self.p.ma_trend_period]
-        cond3 = ma200_slope > 0
-        cond4 = close > self.week_52_low[0] * 1.3
-        cond5 = close > self.week_52_high[0] * 0.75
-        return cond1 and cond2 and cond3 and cond4 and cond5
-
-    def _check_vcp(self) -> dict:
-        result = {
-            "is_vcp": False,
-            "num_contractions": 0,
-            "max_contraction": 0.0,
-            "min_contraction": 0.0,
-        }
-
-        lookback = min(len(self), self.p.lookback_period)
-        if lookback < max(self.p.ma_200_period, self.p.local_extrema_order * 2 + 1):
-            return result
-
-        highs = np.array([self.data.high[-i] for i in range(lookback - 1, -1, -1)], dtype=float)
-        lows = np.array([self.data.low[-i] for i in range(lookback - 1, -1, -1)], dtype=float)
-
-        local_high = self._local_extrema(highs, self.p.local_extrema_order, mode="max")
-        local_low = self._local_extrema(lows, self.p.local_extrema_order, mode="min")
-        if len(local_high) < 2 or len(local_low) < 2:
-            return result
-
-        contraction = self._contractions(highs, lows, local_high, local_low)
-        if len(contraction) < self.p.min_contractions:
-            return result
-
-        num_c = self._num_contractions(contraction)
-        if not (self.p.min_contractions <= num_c <= self.p.max_contractions):
-            return result
-
-        max_c = contraction[num_c - 1]
-        min_c = contraction[0]
-        if max_c > self.p.max_contraction_depth:
-            return result
-        if min_c > self.p.min_contraction_depth:
-            return result
-
-        weeks = (lookback - local_high[::-1][num_c - 1]) / 5
-        if weeks < self.p.min_weeks:
-            return result
-
-        if self.vol_ma_short[0] >= self.vol_ma_long[0]:
-            return result
-
-        result["is_vcp"] = True
-        result["num_contractions"] = num_c
-        result["max_contraction"] = max_c
-        result["min_contraction"] = min_c
-        return result
-
-    @staticmethod
-    def _local_extrema(arr: np.ndarray, order: int, mode: str) -> np.ndarray:
-        if len(arr) < order * 2 + 1:
-            return np.array([], dtype=int)
-        idx = []
-        for i in range(order, len(arr) - order):
-            window = arr[i - order : i + order + 1]
-            center = arr[i]
-            if mode == "max" and center == window.max():
-                idx.append(i)
-            if mode == "min" and center == window.min():
-                idx.append(i)
-        return np.array(idx, dtype=int)
-
-    @staticmethod
-    def _contractions(highs: np.ndarray, lows: np.ndarray, local_high: np.ndarray, local_low: np.ndarray) -> list[float]:
-        contraction = []
-        high_idx = local_high[::-1]
-        low_idx = local_low[::-1]
-        i = 0
-        j = 0
-        while i < len(low_idx) and j < len(high_idx):
-            if low_idx[i] > high_idx[j]:
-                high_val = highs[high_idx[j]]
-                low_val = lows[low_idx[i]]
-                contraction.append(round((high_val - low_val) / high_val * 100, 2))
-                i += 1
-                j += 1
-            else:
-                j += 1
-        return contraction
-
-    @staticmethod
-    def _num_contractions(contraction: list[float]) -> int:
-        new_c = 0
-        num = 0
-        for c in contraction:
-            if c > new_c:
-                num += 1
-                new_c = c
-            else:
-                break
-        return num
