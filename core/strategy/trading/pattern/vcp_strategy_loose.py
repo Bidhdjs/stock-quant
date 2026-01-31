@@ -1,17 +1,18 @@
 """
-VCP 波动收缩形态交易策略。
+VCP 宽松版形态交易策略（用于回测验证信号触发）。
 
 适用场景：
-- 使用 VCPIndicator 产生交易信号，接入统一回测流程。
+- 在保持 VCP 形态框架不变的前提下，降低触发门槛。
 
 数学原理：
-1. VCP 形态作为买入信号。
-2. 卖出策略沿用基类的策略规则（可扩展）。
+1. 保留 Stage 2 趋势模板条件。
+2. 通过降低进度阈值，提高触发概率以验证回测管线。
 """
 
 from __future__ import annotations
 
 import numpy as np
+
 from common.logger import create_log
 from core.strategy.indicator.pattern.vcp_indicator import VCPIndicator
 from core.strategy.trading.common import StrategyBase
@@ -19,10 +20,15 @@ from core.strategy.trading.common import StrategyBase
 logger = create_log("trade_strategy_pattern")
 
 
-class VCPStrategy(StrategyBase):
+class VCPStrategyLoose(StrategyBase):
     def __init__(self):
         super().__init__()
-        self.set_indicator(VCPIndicator())
+        self.set_indicator(
+            VCPIndicator(
+                progress_threshold=0.34,
+                debug_once=True,
+            )
+        )
 
     def next(self):
         if self.order:

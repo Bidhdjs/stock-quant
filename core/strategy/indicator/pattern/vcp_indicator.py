@@ -21,7 +21,14 @@ from core.strategy.indicator.common import SignalRecordManager
 
 
 class VCPIndicator(bt.Indicator):
-    lines = ("stage2_pass", "vcp_signal", "num_contractions", "max_contraction", "min_contraction")
+    lines = (
+        "stage2_pass",
+        "vcp_signal",
+        "vcp_sell_signal",
+        "num_contractions",
+        "max_contraction",
+        "min_contraction",
+    )
     params = (
         ("ma_50_period", 50),
         ("ma_150_period", 150),
@@ -37,6 +44,8 @@ class VCPIndicator(bt.Indicator):
         ("vol_short_period", 5),
         ("vol_long_period", 30),
         ("progress_threshold", 1.0),
+        ("ema_sell_period", 5),
+        ("debug_once", False),
     )
 
     plotinfo = dict(subplot=False)
@@ -47,6 +56,9 @@ class VCPIndicator(bt.Indicator):
         self._min_len = max(
             self.p.ma_200_period + self.p.ma_trend_period, self.p.local_extrema_order * 2 + 1
         )
+        self._debug_printed = False
+        self._vcp_bought = False
+        self.ema_sell = bt.indicators.EMA(self.data.close, period=self.p.ema_sell_period)
         self.addminperiod(self._min_len)
 
     def _build_feature_frame(self, lookback: int) -> pd.DataFrame:
@@ -61,6 +73,7 @@ class VCPIndicator(bt.Indicator):
     def next(self):
         self.lines.stage2_pass[0] = 0
         self.lines.vcp_signal[0] = np.nan
+        self.lines.vcp_sell_signal[0] = np.nan
         self.lines.num_contractions[0] = 0
         self.lines.max_contraction[0] = np.nan
         self.lines.min_contraction[0] = np.nan
@@ -86,6 +99,10 @@ class VCPIndicator(bt.Indicator):
         )
         vcp_result = evaluate_vcp(df, params)
 
+        if self.p.debug_once and not self._debug_printed:
+            print(f"vcp_result @ {self.data.datetime.date(0)}: {vcp_result}")
+            self._debug_printed = True
+
         self.lines.stage2_pass[0] = 1 if vcp_result["stage2_pass"] else 0
         if not vcp_result["stage2_pass"]:
             return
@@ -106,3 +123,23 @@ class VCPIndicator(bt.Indicator):
             "vcp_buy",
             f"VCP形态: {vcp_result['num_contractions']}次收缩",
         )
+        self._vcp_bought = True
+
+        if self._vcp_bought and len(self) > self.p.ema_sell_period:
+            prev_close = self.data.close[-1]
+            prev_ema = self.ema_sell[-1]
+            curr_close = self.data.close[0]
+            curr_ema = self.ema_sell[0]
+            if prev_close >= prev_ema and curr_close < curr_ema:
+                self.lines.vcp_sell_signal[0] = curr_close
+                self.signal_record_manager.add_signal_record(
+                    self.data.datetime.date(),
+                    "vcp_sell",
+                    f"跌破EMA{self.p.ema_sell_period}",
+                )
+                self._vcp_bought = False
+                if self.p.debug_once:
+                    print(
+                        f"vcp_sell @ {self.data.datetime.date(0)}: "
+                        f"close={curr_close:.2f} ema={curr_ema:.2f}"
+                    )

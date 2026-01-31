@@ -1,6 +1,9 @@
 import datetime
 import pandas as pd
 
+def normalize_signal_type(signal_type: str) -> str:
+    return signal_type
+
 class SignalRecordManager:
     def __init__(self):
         self.signal_records = []

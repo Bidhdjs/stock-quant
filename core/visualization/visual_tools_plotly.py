@@ -17,6 +17,7 @@ from plotly.subplots import make_subplots
 from common.logger import create_log
 from common.util_csv import load_stock_data
 from core.visualization.visual_demo import get_sample_signal_records, get_sample_trade_records, get_sample_asset_records
+from core.strategy.indicator.common import normalize_signal_type
 from settings import stock_data_root, html_root
 logger = create_log('visual_tools_plotly')
 
@@ -33,6 +34,63 @@ REPORT_THEME = {
     "line_blue": "#3f5873",
     "line_orange": "#8a6d3b",
 }
+
+SIGNAL_STYLE_CONFIG = [
+    {
+        "signal_type": "strong_buy",
+        "name": "强买入信号",
+        "text": "强多",
+        "symbol": "circle",
+        "color": REPORT_THEME["positive"],
+        "text_color": REPORT_THEME["positive"],
+        "y_offset": 0.95,
+    },
+    {
+        "signal_type": "normal_buy",
+        "name": "买入信号",
+        "text": "多",
+        "symbol": "circle",
+        "color": "#8aa593",
+        "text_color": REPORT_THEME["positive"],
+        "y_offset": 0.95,
+    },
+    {
+        "signal_type": "strong_sell",
+        "name": "强卖出信号",
+        "text": "强空",
+        "symbol": "circle",
+        "color": REPORT_THEME["negative"],
+        "text_color": REPORT_THEME["negative"],
+        "y_offset": 1.05,
+    },
+    {
+        "signal_type": "normal_sell",
+        "name": "卖出信号",
+        "text": "空",
+        "symbol": "circle",
+        "color": "#b07a7a",
+        "text_color": REPORT_THEME["negative"],
+        "y_offset": 1.05,
+    },
+    {
+        "signal_type": "vcp_buy",
+        "name": "VCP 买入信号",
+        "text": "VCP",
+        "symbol": "diamond",
+        "color": "#f59e0b",
+        "text_color": "#f59e0b",
+        "y_offset": 0.93,
+    },
+    {
+        "signal_type": "vcp_sell",
+        "name": "VCP 卖出信号",
+        "text": "VCP空",
+        "symbol": "triangle-down",
+        "color": "#f97316",
+        "text_color": "#f97316",
+        "y_offset": 1.08,
+    },
+]
 
 FONT_FAMILY = "IBM Plex Sans, Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
 FONT_MONO = "IBM Plex Mono, SFMono-Regular, Menlo, Consolas, monospace"
@@ -800,102 +858,34 @@ def create_trading_chart(chart_title_prefix, df, valid_signals, valid_trades, ho
     # 6. 添加信号点标记
     # 首先检查valid_signals是否有效
     if valid_signals is not None and not valid_signals.empty and all(col in valid_signals.columns for col in ['date', 'signal_type', 'signal_description']):
-        # 强买入信号（绿色，圆形）
-        strong_buy_signals = valid_signals[valid_signals['signal_type'] == 'strong_buy']
-        if not strong_buy_signals.empty:
+        valid_signals = valid_signals.copy()
+        valid_signals['signal_type_norm'] = valid_signals['signal_type'].apply(normalize_signal_type)
+        for cfg in SIGNAL_STYLE_CONFIG:
+            cfg_signals = valid_signals[valid_signals['signal_type_norm'] == cfg['signal_type']]
+            if cfg_signals.empty:
+                continue
+            is_buy = cfg['signal_type'].endswith('buy')
+            y_anchor = 'low' if is_buy else 'high'
+            y_values = df.loc[cfg_signals['date'], y_anchor] * cfg['y_offset']
+            text_position = 'bottom center' if is_buy else 'top center'
             fig.add_trace(
                 go.Scatter(
-                    x=strong_buy_signals['date'],
-                    y=df.loc[strong_buy_signals['date'], 'low'] * 0.95,
+                    x=cfg_signals['date'],
+                    y=y_values,
                     mode='markers+text',
-                    name='强买入信号',
+                    name=cfg['name'],
                     marker=dict(
-                        symbol='circle',
-                        color=REPORT_THEME['positive'],
+                        symbol=cfg['symbol'],
+                        color=cfg['color'],
                         size=10,
                         line=dict(width=1, color=REPORT_THEME['text'])
                     ),
-                    text=['强多' for _ in range(len(strong_buy_signals))],
-                    textposition='bottom center',
+                    text=[cfg['text'] for _ in range(len(cfg_signals))],
+                    textposition=text_position,
                     texttemplate='%{text}',
-                    textfont=dict(family=FONT_FAMILY, size=12, color=REPORT_THEME['positive']),
+                    textfont=dict(family=FONT_FAMILY, size=12, color=cfg['text_color']),
                     hovertemplate='日期: %{x}<br>信号: %{customdata[0]}<extra></extra>',
-                    customdata=strong_buy_signals[['signal_description']].values,
-                    showlegend=True
-                ), row=1, col=1
-            )
-
-        # 买入信号（浅绿色，圆形）
-        buy_signals = valid_signals[valid_signals['signal_type'] == 'normal_buy']
-        if not buy_signals.empty:
-            fig.add_trace(
-                go.Scatter(
-                    x=buy_signals['date'],
-                    y=df.loc[buy_signals['date'], 'low'] * 0.95,
-                    mode='markers+text',
-                    name='买入信号',
-                    marker=dict(
-                        symbol='circle',
-                        color="#8aa593",
-                        size=10,
-                        line=dict(width=1, color=REPORT_THEME['text'])
-                    ),
-                    text=['多' for _ in range(len(buy_signals))],
-                    textposition='bottom center',
-                    texttemplate='%{text}',
-                    textfont=dict(family=FONT_FAMILY, size=12, color=REPORT_THEME['positive']),
-                    hovertemplate='日期: %{x}<br>信号: %{customdata[0]}<extra></extra>',
-                    customdata=buy_signals[['signal_description']].values,
-                    showlegend=True
-                ), row=1, col=1
-            )
-
-        # 强卖出信号（红色，圆形）
-        strong_sell_signals = valid_signals[valid_signals['signal_type'] == 'strong_sell']
-        if not strong_sell_signals.empty:
-            fig.add_trace(
-                go.Scatter(
-                    x=strong_sell_signals['date'],
-                    y=df.loc[strong_sell_signals['date'], 'high'] * 1.05,
-                    mode='markers+text',
-                    name='强卖出信号',
-                    marker=dict(
-                        symbol='circle',
-                        color=REPORT_THEME['negative'],
-                        size=10,
-                        line=dict(width=1, color=REPORT_THEME['text'])
-                    ),
-                    text=['强空' for _ in range(len(strong_sell_signals))],
-                    textposition='top center',
-                    texttemplate='%{text}',
-                    textfont=dict(family=FONT_FAMILY, size=12, color=REPORT_THEME['negative']),
-                    hovertemplate='日期: %{x}<br>信号: %{customdata[0]}<extra></extra>',
-                    customdata=strong_sell_signals[['signal_description']].values,
-                    showlegend=True
-                ), row=1, col=1
-            )
-
-        # 卖出信号（浅红色，圆形）
-        sell_signals = valid_signals[valid_signals['signal_type'] == 'normal_sell']
-        if not sell_signals.empty:
-            fig.add_trace(
-                go.Scatter(
-                    x=sell_signals['date'],
-                    y=df.loc[sell_signals['date'], 'high'] * 1.05,
-                    mode='markers+text',
-                    name='卖出信号',
-                    marker=dict(
-                        symbol='circle',
-                        color="#b07a7a",
-                        size=10,
-                        line=dict(width=1, color=REPORT_THEME['text'])
-                    ),
-                    text=['空' for _ in range(len(sell_signals))],
-                    textposition='top center',
-                    texttemplate='%{text}',
-                    textfont=dict(family=FONT_FAMILY, size=12, color=REPORT_THEME['negative']),
-                    hovertemplate='日期: %{x}<br>信号: %{customdata[0]}<extra></extra>',
-                    customdata=sell_signals[['signal_description']].values,
+                    customdata=cfg_signals[['signal_description']].values,
                     showlegend=True
                 ), row=1, col=1
             )
