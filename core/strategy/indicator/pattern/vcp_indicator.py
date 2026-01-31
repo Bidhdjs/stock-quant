@@ -54,21 +54,40 @@ class VCPIndicator(bt.Indicator):
     def __init__(self):
         self.signal_record_manager = SignalRecordManager()
         self._min_len = max(
-            self.p.ma_200_period + self.p.ma_trend_period, self.p.local_extrema_order * 2 + 1
+            self.p.ma_200_period + self.p.ma_trend_period, 
+            self.p.local_extrema_order * 2 + 1,
+            self.p.ema_sell_period  # EMA 卖出信号也需要足够的历史数据
         )
         self._debug_printed = False
         self._vcp_bought = False
         self.ema_sell = bt.indicators.EMA(self.data.close, period=self.p.ema_sell_period)
-        self.addminperiod(self._min_len)
+        # 不强制设置超大 minperiod，避免短样本回测时触发 backtrader 内部越界
+        # 在 next 中使用 len(self) 自行判断数据是否足够
+        self.addminperiod(1)
 
     def _build_feature_frame(self, lookback: int) -> pd.DataFrame:
-        data = {
-            "high": np.array(self.data.high.get(size=lookback)),
-            "low": np.array(self.data.low.get(size=lookback)),
-            "close": np.array(self.data.close.get(size=lookback)),
-            "volume": np.array(self.data.volume.get(size=lookback)),
-        }
-        return pd.DataFrame(data)
+        """
+        构建特征 DataFrame，安全处理数据获取
+        
+        防护措施：
+        - 确保 lookback 不超过当前可用数据长度
+        - 避免索引越界导致回测中断
+        """
+        # 确保 lookback 不超过实际可用数据
+        safe_lookback = min(lookback, len(self))
+        
+        try:
+            data = {
+                "high": np.array(self.data.high.get(size=safe_lookback)),
+                "low": np.array(self.data.low.get(size=safe_lookback)),
+                "close": np.array(self.data.close.get(size=safe_lookback)),
+                "volume": np.array(self.data.volume.get(size=safe_lookback)),
+            }
+            return pd.DataFrame(data)
+        except Exception as e:
+            # 如果获取数据失败，返回空 DataFrame（evaluate_vcp 会处理）
+            print(f"[警告] _build_feature_frame 获取数据失败: {str(e)}, lookback={lookback}, available={len(self)}")
+            return pd.DataFrame()
 
     def next(self):
         # ========== 初始化所有信号输出线 ==========
@@ -86,6 +105,7 @@ class VCPIndicator(bt.Indicator):
         
         # ========== 数据准备 ==========
         # 取最近 lookback_period 条数据构建 DataFrame（便于 evaluate_vcp 处理）
+        # 关键：不能超过当前已加载的数据总长度，否则会导致索引越界
         lookback = min(len(self), self.p.lookback_period)
         df = self._build_feature_frame(lookback)
         
@@ -114,6 +134,11 @@ class VCPIndicator(bt.Indicator):
         # - num_contractions: 有效收缩次数
         # - max_contraction: 最小收缩幅度
         # - min_contraction: 最大收缩幅度
+        
+        # 防护：如果 DataFrame 为空，返回无信号
+        if df.empty:
+            return
+            
         vcp_result = evaluate_vcp(df, params)
 
         # 调试输出（仅第一次）
