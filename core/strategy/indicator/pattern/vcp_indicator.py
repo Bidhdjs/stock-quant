@@ -71,17 +71,25 @@ class VCPIndicator(bt.Indicator):
         return pd.DataFrame(data)
 
     def next(self):
-        self.lines.stage2_pass[0] = 0
-        self.lines.vcp_signal[0] = np.nan
-        self.lines.vcp_sell_signal[0] = np.nan
-        self.lines.num_contractions[0] = 0
-        self.lines.max_contraction[0] = np.nan
-        self.lines.min_contraction[0] = np.nan
+        # ========== 初始化所有信号输出线 ==========
+        # 设为 NaN 表示该 K 线无信号触发（图表上不显示标记）
+        self.lines.stage2_pass[0] = 0  # Stage 2 状态：0=未通过，1=已通过
+        self.lines.vcp_signal[0] = np.nan  # VCP 买入信号价格位置
+        self.lines.vcp_sell_signal[0] = np.nan  # VCP 卖出信号价格位置
+        self.lines.num_contractions[0] = 0  # 有效收缩次数
+        self.lines.max_contraction[0] = np.nan  # 最大收缩幅度
+        self.lines.min_contraction[0] = np.nan  # 最小收缩幅度
 
+        # 数据充分性检查
         if len(self) < self._min_len:
             return
+        
+        # ========== 数据准备 ==========
+        # 取最近 lookback_period 条数据构建 DataFrame（便于 evaluate_vcp 处理）
         lookback = min(len(self), self.p.lookback_period)
         df = self._build_feature_frame(lookback)
+        
+        # 创建参数对象并调用核心计算函数
         params = VCPParams(
             ma_50_period=self.p.ma_50_period,
             ma_150_period=self.p.ma_150_period,
@@ -97,47 +105,91 @@ class VCPIndicator(bt.Indicator):
             vol_short_period=self.p.vol_short_period,
             vol_long_period=self.p.vol_long_period,
         )
+        
+        # ========== 调用核心 VCP 计算函数 ==========
+        # 返回值包含 6 个关键指标：
+        # - stage2_pass: 是否满足 Stage 2 趋势
+        # - is_vcp: 是否完全满足 VCP 形态
+        # - progress: 进度分值 0-1（反映形态成熟度）
+        # - num_contractions: 有效收缩次数
+        # - max_contraction: 最小收缩幅度
+        # - min_contraction: 最大收缩幅度
         vcp_result = evaluate_vcp(df, params)
 
+        # 调试输出（仅第一次）
         if self.p.debug_once and not self._debug_printed:
             print(f"vcp_result @ {self.data.datetime.date(0)}: {vcp_result}")
             self._debug_printed = True
 
+        # ========== 信号过滤阶段 1：Stage 2 检查 ==========
+        # 输出 Stage 2 通过状态到指标线
         self.lines.stage2_pass[0] = 1 if vcp_result["stage2_pass"] else 0
+        
+        # 如果未通过 Stage 2 趋势，则无需继续分析
         if not vcp_result["stage2_pass"]:
             return
 
+        # ========== 信号过滤阶段 2：进度阈值检查 ==========
+        # progress_threshold 用于控制形态成熟度要求
+        # - 1.0：要求完全满足所有条件（是_vcp=True）
+        # - <1.0：允许部分条件未满足（接近 VCP 即可触发）
         if vcp_result["progress"] < self.p.progress_threshold:
             return
 
+        # ========== 信号过滤阶段 3：VCP 完全确认 ==========
+        # 当 progress_threshold=1.0 时，只有完全确立的 VCP 才输出信号
         if not vcp_result["is_vcp"] and self.p.progress_threshold >= 1.0:
             return
 
+        # ========== VCP 买入信号输出 ==========
+        # 将当前收盘价作为信号价格输出（用于图表标记）
         self.lines.vcp_signal[0] = self.data.close[0]
+        
+        # 输出收缩统计数据到指标线
         self.lines.num_contractions[0] = vcp_result["num_contractions"]
         self.lines.max_contraction[0] = vcp_result["max_contraction"]
         self.lines.min_contraction[0] = vcp_result["min_contraction"]
 
+        # 记录买入信号事件（用于后续回测或交易决策）
         self.signal_record_manager.add_signal_record(
             self.data.datetime.date(),
             "vcp_buy",
             f"VCP形态: {vcp_result['num_contractions']}次收缩",
         )
+        
+        # 标记已触发 VCP 买入信号（用于后续卖出逻辑判断）
         self._vcp_bought = True
 
+        # ========== VCP 卖出信号：EMA 穿越法 ==========
+        # 买入后才检查卖出条件，确保有买卖对应
         if self._vcp_bought and len(self) > self.p.ema_sell_period:
+            # 前一日数据
             prev_close = self.data.close[-1]
             prev_ema = self.ema_sell[-1]
+            
+            # 当前日数据
             curr_close = self.data.close[0]
             curr_ema = self.ema_sell[0]
+            
+            # ========== 卖出信号条件 ==========
+            # 典型的卖出信号：价格从 EMA 上方穿过到下方
+            # 即：前日收盘 ≥ EMA5 且 当日收盘 < EMA5
+            # 这表示上升趋势被破坏，应该减仓或止损
             if prev_close >= prev_ema and curr_close < curr_ema:
+                # 输出卖出信号价格（当前收盘价）
                 self.lines.vcp_sell_signal[0] = curr_close
+                
+                # 记录卖出信号事件
                 self.signal_record_manager.add_signal_record(
                     self.data.datetime.date(),
                     "vcp_sell",
                     f"跌破EMA{self.p.ema_sell_period}",
                 )
+                
+                # 卖出后重置买入标记，等待下一次 VCP 信号
                 self._vcp_bought = False
+                
+                # 调试输出（显示卖出具体价格与 EMA 的关系）
                 if self.p.debug_once:
                     print(
                         f"vcp_sell @ {self.data.datetime.date(0)}: "

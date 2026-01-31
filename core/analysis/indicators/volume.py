@@ -42,57 +42,89 @@ def compute_volume_features(df: pd.DataFrame, params: VolumeIndicatorParams | No
     if params is None:
         params = VolumeIndicatorParams()
 
+    # 解析 OHLCV 数据列（容错处理大小写）
     open_ = _resolve_column(df, "open")
     high = _resolve_column(df, "high")
     low = _resolve_column(df, "low")
     close = _resolve_column(df, "close")
     volume = _resolve_column(df, "volume")
 
+    # ========== 成交量与收盘价的移动平均 ==========
+    # n1=1：今日均线（基本为原值）
     ma_vol_today = volume.rolling(window=params.n1, min_periods=params.n1).mean()
     ma_close_today = close.rolling(window=params.n1, min_periods=params.n1).mean()
 
+    # n2=5：5日均线，用于短期趋势识别
     ma_vol_5 = volume.rolling(window=params.n2, min_periods=params.n2).mean()
     ma_close_5 = close.rolling(window=params.n2, min_periods=params.n2).mean()
 
+    # n3=20：20日均线，用于中期趋势识别
     ma_vol_20 = volume.rolling(window=params.n3, min_periods=params.n3).mean()
     ma_close_20 = close.rolling(window=params.n3, min_periods=params.n3).mean()
 
+    # ========== 成交量标准差（量能波动程度） ==========
+    # 用于判断成交量是否显著放大或缩小
     vol_std_5 = volume.rolling(window=params.n2, min_periods=params.n2).std(ddof=0)
     vol_std_20 = volume.rolling(window=params.n3, min_periods=params.n3).std(ddof=0)
 
-    delta = close.diff()
-    rsi_up = delta.clip(lower=0)
-    rsi_down = -delta.clip(upper=0)
+    # ========== RSI（相对强弱指数）==========
+    # 衡量近期上涨与下跌的强度对比，范围 [0, 100]
+    delta = close.diff()  # 收盘价变化
+    rsi_up = delta.clip(lower=0)  # 仅保留上涨部分
+    rsi_down = -delta.clip(upper=0)  # 仅保留下跌部分（转正数）
+    
+    # 计算平均涨幅与平均跌幅
     rsi_avg_up = rsi_up.rolling(window=params.rsi_period, min_periods=params.rsi_period).mean()
     rsi_avg_down = rsi_down.rolling(window=params.rsi_period, min_periods=params.rsi_period).mean()
+    
+    # RSI = (平均涨幅 / (平均涨幅 + 平均跌幅)) * 100，避免除零
     rsi = rsi_avg_up / (rsi_avg_up + rsi_avg_down + 1e-10) * 100
 
-    boll_mid = close.rolling(window=params.boll_period, min_periods=params.boll_period).mean()
-    boll_std = close.rolling(window=params.boll_period, min_periods=params.boll_period).std(ddof=0)
-    boll_top = boll_mid + boll_std * params.boll_width
-    boll_bot = boll_mid - boll_std * params.boll_width
+    # ========== 布林带（Bollinger Bands）==========
+    # 用于识别价格的高低位置与波动区间
+    boll_mid = close.rolling(window=params.boll_period, min_periods=params.boll_period).mean()  # 中线
+    boll_std = close.rolling(window=params.boll_period, min_periods=params.boll_period).std(ddof=0)  # 标准差
+    boll_top = boll_mid + boll_std * params.boll_width  # 上轨（中线 + 2*std）
+    boll_bot = boll_mid - boll_std * params.boll_width  # 下轨（中线 - 2*std）
 
-    lowest = low.rolling(window=params.kdj_period, min_periods=params.kdj_period).min()
-    highest_3 = high.rolling(window=3, min_periods=3).max()
-    lowest_3 = low.rolling(window=3, min_periods=3).min()
+    # ========== KDJ 指标（随机指标）==========
+    # 用于识别超买超卖状态
+    lowest = low.rolling(window=params.kdj_period, min_periods=params.kdj_period).min()  # N期最低价
+    highest_3 = high.rolling(window=3, min_periods=3).max()  # 3期最高价
+    lowest_3 = low.rolling(window=3, min_periods=3).min()  # 3期最低价
+    
+    # RSV（未成熟随机值）= (收盘价 - N期最低价) / (3期最高价 - 3期最低价) * 100
     rsv = (close - lowest) / (highest_3 - lowest_3 + 1e-10) * 100
+    
+    # K线：RSV的3期简单移动平均
     k = rsv.rolling(window=3, min_periods=3).mean()
+    
+    # D线：K线的3期简单移动平均
     d = k.rolling(window=3, min_periods=3).mean()
+    
+    # J线：3*K - 2*D，用于增强信号灵敏度
     j = 3 * k - 2 * d
 
-    is_down = close < open_
-    is_up = close > open_
+    # ========== 连续涨跌判断 ==========
+    # 用于识别连续上涨或下跌的模式
+    is_down = close < open_  # 下跌K线（收盘 < 开盘）
+    is_up = close > open_  # 上涨K线（收盘 > 开盘）
+    
+    # 连续3根下跌K线
     is_3_down = (
         is_down.rolling(window=3, min_periods=3)
         .apply(lambda x: 1.0 if np.all(x) else 0.0, raw=True)
         .astype(bool)
     )
+    
+    # 连续3根上涨K线
     is_3_up = (
         is_up.rolling(window=3, min_periods=3)
         .apply(lambda x: 1.0 if np.all(x) else 0.0, raw=True)
         .astype(bool)
     )
 
+    # ========== 返回特征 DataFrame ==========
     features = pd.DataFrame(
         {
             "ma_vol_today": ma_vol_today,
@@ -104,7 +136,7 @@ def compute_volume_features(df: pd.DataFrame, params: VolumeIndicatorParams | No
             "vol_std_5": vol_std_5,
             "vol_std_20": vol_std_20,
             "rsi": rsi,
-            "rsi_prev": rsi.shift(1),
+            "rsi_prev": rsi.shift(1),  # 前一日 RSI（用于信号交叉判断）
             "boll_top": boll_top,
             "boll_bot": boll_bot,
             "k": k,
