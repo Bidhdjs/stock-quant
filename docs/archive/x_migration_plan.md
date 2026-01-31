@@ -8,6 +8,7 @@
 - [X] `x/find_trades.py` → `core/analysis/migrations/trade_scraper.py`（可选 Selenium 抓取）
 - [X] `x/vcp_screener.github.io-main/.../vcp_screener.py` → `core/analysis/migrations/vcp_screener.py`（已拆分为可复用模块，默认不联网）
 - [X] `x/vcp_from_youtuber/` → `core/analysis/migrations/vcp_tools.py` + `core/analysis/migrations/vcp_from_youtuber/`（提取可复用逻辑，保留说明性模块）
+- [X] 交易策略分析基础模块：`core/analysis/trade_schema.py`、`core/analysis/trade_strategy_infer.py`
 - [ ] `x/TV代码/*` → `docs/`（仅保留说明性脚本，不进入核心逻辑）
 
 ## 说明

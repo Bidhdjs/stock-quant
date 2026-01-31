@@ -43,6 +43,18 @@ def main() -> int:
                 "EnhancedVolumeStrategy",
             ]
         )
+        errors += run_cmd(
+            [
+                sys.executable,
+                "-m",
+                "core.cli",
+                "backtest",
+                "--csv",
+                str(csv_path),
+                "--strategy",
+                "VCPStrategy",
+            ]
+        )
     else:
         print(f"[SKIP] CSV not found: {csv_path}")
 

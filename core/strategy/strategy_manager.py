@@ -62,6 +62,25 @@ class StrategyManager:
                     logger.error(f"Failed to load volume module {module_name}: {str(e)}")
                     continue
 
+        # 处理pattern子目录
+        pattern_dir = os.path.join(strategy_dir, 'pattern')
+        if os.path.exists(pattern_dir):
+            for _, module_name, _ in pkgutil.iter_modules([pattern_dir]):
+                if module_name.startswith('__'):
+                    continue
+
+                try:
+                    full_module_path = f'core.strategy.trading.pattern.{module_name}'
+                    module = importlib.import_module(full_module_path)
+
+                    for attr_name in dir(module):
+                        attr = getattr(module, attr_name)
+                        if isinstance(attr, type) and issubclass(attr, StrategyBase) and attr != StrategyBase:
+                            self.register_strategy(attr)
+                except Exception as e:
+                    logger.error(f"Failed to load pattern module {module_name}: {str(e)}")
+                    continue
+
     def register_strategy(self, strategy_class):
         """注册一个策略类"""
         if strategy_class not in self.strategy_list:

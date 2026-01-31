@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from core.analysis.migrations.vcp_from_youtuber.rsrs_indicator import RsrsConfig, compute_rsrs
+from core.analysis.migrations.vcp_from_youtuber.rs_rating import compute_rs_scores
 from core.analysis.migrations.vcp_from_youtuber.rsi_signal import compute_rsi_signal
 
 
@@ -37,3 +38,12 @@ def test_compute_rsi_signal():
     result = compute_rsi_signal(data)
     assert "rsi" in result.columns
     assert "rsi_signal" in result.columns
+
+
+@pytest.mark.mock_only
+def test_compute_rs_scores():
+    idx = pd.date_range("2023-01-01", periods=260, freq="D")
+    series_a = pd.Series(np.linspace(100, 160, 260), index=idx)
+    series_b = pd.Series(np.linspace(100, 120, 260), index=idx)
+    df = compute_rs_scores({"AAA": series_a, "BBB": series_b})
+    assert set(df.columns).issuperset({"Ticker", "RS_Score", "RS_Rating"})

@@ -292,6 +292,7 @@ python ./tools/search_engine.py "your search keywords"
 - web_scraper.py 抓取到的中文可能乱码（站点为 GBK/GB2312）；需按页面 charset 转码或用 chardet 检测后再解析。
 
 - conda run 在 GBK 控制台输出包含特殊字符时可能触发 UnicodeEncodeError；可尝试设置 OutputEncoding 为 UTF-8 或用 CONDA_NO_PLUGINS=true。
+- 运行 pytest/cli_smoke 如遇 conda UnicodeEncodeError，建议设置 CONDA_NO_PLUGINS=true 与 PYTHONIOENCODING=utf-8 后重试。
 
 - web_scraper.py 依赖 Playwright；未安装会报 ModuleNotFoundError: playwright。
 

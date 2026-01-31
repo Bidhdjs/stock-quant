@@ -1,10 +1,12 @@
 """
-CLI 入口：提供最小可用的 data fetch / backtest / strategy list。
+CLI 入口：提供最小可用的 data fetch / backtest / strategy list / strategy analyze。
 
 使用示例：
   python -m core.cli data fetch --market US --code AAPL --start 2026-01-01 --end 2026-01-30
   python -m core.cli backtest --csv data/stock/akshare/US.AAPL_AAPL_20260101_20260130.csv --strategy EnhancedVolumeStrategy
+  python -m core.cli backtest --csv data/stock/akshare/US.AAPL_AAPL_20260101_20260130.csv --strategy VCPStrategy
   python -m core.cli strategy list
+  python -m core.cli strategy analyze --input x/option_trades_all.csv
 """
 
 from __future__ import annotations
@@ -16,7 +18,8 @@ from typing import Iterable
 import pandas as pd
 
 from common.logger import create_log
-from core.analysis.migrations.vcp_tools import build_vcp_signal_frame
+from core.analysis.trade_schema import normalize_trades
+from core.analysis.trade_strategy_infer import infer_strategy, profile_to_frame
 from core.quant.quant_manage import run_backtest_enhanced_volume_strategy
 from core.stock.data_source_router import fetch_history_with_fallback
 from core.stock.manager_common import write_cached_history
@@ -130,24 +133,24 @@ def _write_html_table(df: pd.DataFrame, html_path: Path, title: str) -> None:
     html_path.write_text("\n".join(html), encoding="utf-8")
 
 
-def cmd_vcp_analyze(args: argparse.Namespace) -> int:
-    csv_path = Path(args.csv)
+def cmd_trades_analyze(args: argparse.Namespace) -> int:
+    csv_path = Path(args.input)
     if not csv_path.exists():
-        logger.error("CSV 不存在：%s", csv_path)
+        logger.error("输入 CSV 不存在：%s", csv_path)
         return 1
-    df = pd.read_csv(csv_path)
-    df.columns = [str(col).strip().lower() for col in df.columns]
-    if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    result = build_vcp_signal_frame(df)
+    trades = pd.read_csv(csv_path)
+    normalized = normalize_trades(trades)
+    profile = infer_strategy(normalized)
+    summary_df = profile_to_frame(profile)
+
     output_dir = Path(args.output_dir) if args.output_dir else csv_path.parent
     output_dir.mkdir(parents=True, exist_ok=True)
-    out_csv = output_dir / f"{csv_path.stem}_vcp_signals.csv"
-    out_html = output_dir / f"{csv_path.stem}_vcp_signals.html"
-    result.to_csv(out_csv, index=False)
-    _write_html_table(result.tail(200), out_html, title="VCP Signals (Latest 200)")
-    logger.info("VCP 输出：%s", out_csv)
-    logger.info("VCP 报告：%s", out_html)
+    out_csv = output_dir / f"{csv_path.stem}_strategy_profile.csv"
+    out_html = output_dir / f"{csv_path.stem}_strategy_profile.html"
+    summary_df.to_csv(out_csv, index=False)
+    _write_html_table(summary_df, out_html, title="Strategy Profile")
+    logger.info("策略画像输出：%s", out_csv)
+    logger.info("策略画像报告：%s", out_html)
     print(out_csv)
     print(out_html)
     return 0
@@ -182,13 +185,10 @@ def build_parser() -> argparse.ArgumentParser:
     strategy_sub = strategy.add_subparsers(dest="strategy_cmd", required=True)
     list_cmd = strategy_sub.add_parser("list", help="列出策略")
     list_cmd.set_defaults(func=lambda args: cmd_strategy_list())
-
-    vcp = subparsers.add_parser("vcp", help="VCP 分析")
-    vcp_sub = vcp.add_subparsers(dest="vcp_cmd", required=True)
-    analyze_cmd = vcp_sub.add_parser("analyze", help="VCP 信号分析（CSV -> CSV/HTML）")
-    analyze_cmd.add_argument("--csv", required=True, help="本地 CSV 路径")
-    analyze_cmd.add_argument("--output-dir", help="输出目录（默认 CSV 同级）")
-    analyze_cmd.set_defaults(func=cmd_vcp_analyze)
+    analyze_trades = strategy_sub.add_parser("analyze", help="交易策略推断（CSV -> CSV/HTML）")
+    analyze_trades.add_argument("--input", required=True, help="交易 CSV 路径")
+    analyze_trades.add_argument("--output-dir", help="输出目录（默认 CSV 同级）")
+    analyze_trades.set_defaults(func=cmd_trades_analyze)
 
     return parser
 

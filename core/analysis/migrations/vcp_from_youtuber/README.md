@@ -5,6 +5,9 @@
 ## 已迁移模块
 - `rsrs_indicator.py`：RSRS 指标（修复原脚本中的变量覆盖与缺失依赖问题）
 - `rsi_signal.py`：RSI 信号（简化版）
+- `rs_rating.py`：RS Rating（基于价格序列计算）
+- `minervini_filters.py`：Minervini 趋势模板过滤
+- `supertrend_vcp.py`：SuperTrend + VCP 简化过滤（依赖 pandas_ta）
 
 ## 待整理的原始脚本
 原始脚本存在大量占位符与变量覆盖（例如 `df =` 反复覆盖），暂不直接迁入主流程。若需要进一步迁移，请以此目录为基础逐步重构。
