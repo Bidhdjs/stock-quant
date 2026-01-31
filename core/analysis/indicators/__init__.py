@@ -7,12 +7,16 @@
 """
 
 from core.analysis.indicators.volume import VolumeIndicatorParams, compute_latest_volume_features, compute_volume_features
-from core.analysis.indicators.vcp import VCPParams, evaluate_vcp
+from core.analysis.indicators.vcp import VCPParams, compute_vcp_features, evaluate_vcp
+from core.analysis.indicators.vcp_plus import VCPPlusParams, evaluate_vcp_plus
 
 __all__ = [
     "VolumeIndicatorParams",
     "compute_latest_volume_features",
     "compute_volume_features",
     "VCPParams",
+    "compute_vcp_features",
     "evaluate_vcp",
+    "VCPPlusParams",
+    "evaluate_vcp_plus",
 ]

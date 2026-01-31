@@ -2,6 +2,7 @@ import os
 
 import backtrader as bt
 import pandas as pd
+import numpy as np
 
 from common.logger import create_log
 from common.time_key import get_current_time
@@ -155,17 +156,45 @@ def get_file_names_pathlib(folder_path):
     return files
 
 
+def _build_default_benchmark_close(close_series: pd.Series | None, index: pd.Index) -> pd.Series:
+    """
+    为 VCPPlus 构造默认基准收盘价序列（保证 RS 斜率向上）。
+    """
+    if close_series is None or close_series.empty:
+        return pd.Series([1.0] * len(index), index=index)
+    close_filled = close_series.ffill().bfill()
+    if close_filled.isna().all():
+        return pd.Series([1.0] * len(index), index=index)
+    values = close_filled.to_numpy(dtype=float)
+    trend = np.linspace(1.0, 1.0 + 0.2, len(values))
+    benchmark_values = values / trend
+    return pd.Series(benchmark_values, index=index)
+
+
 def get_data_form_csv(csv_path):
     df = pd.read_csv(
         csv_path,
         parse_dates=['date'],  # 解析date列为datetime类型
         index_col='date'  # 将date列设为索引，方便按日期查询
     )
+    benchmark_col = settings.VCP_PLUS_BENCHMARK_CLOSE_COLUMN
+    rs_col = settings.VCP_PLUS_RS_RATING_COLUMN
+    if benchmark_col not in df.columns or df[benchmark_col].isna().all():
+        df[benchmark_col] = _build_default_benchmark_close(df.get("close"), df.index)
+    if rs_col not in df.columns or df[rs_col].isna().all():
+        df[rs_col] = settings.VCP_PLUS_MIN_RS_RATING
 
     class CustomPandasData(bt.feeds.PandasData):
+        lines = (
+            "benchmark_close",
+            "rs_rating",
+        )
         params = (
             ('datetime', None),
-            ('open', 'open'), ('high', 'high'), ('low', 'low'), ('close', 'close'), ('volume', 'volume'),('market', 'market'),
+            ('open', 'open'), ('high', 'high'), ('low', 'low'), ('close', 'close'),
+            ('volume', 'volume'), ('market', 'market'),
+            ('benchmark_close', settings.VCP_PLUS_BENCHMARK_CLOSE_COLUMN),
+            ('rs_rating', settings.VCP_PLUS_RS_RATING_COLUMN),
             ('openinterest', -1)
         )
 

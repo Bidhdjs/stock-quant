@@ -10,7 +10,7 @@ VCP（Volatility Contraction Pattern）指标计算模块。
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -84,15 +84,17 @@ def _num_contractions(contraction: list[float]) -> int:
     return num
 
 
-def evaluate_vcp(df: pd.DataFrame, params: VCPParams | None = None) -> Dict[str, float | int | bool]:
+def compute_vcp_features(df: pd.DataFrame, params: VCPParams | None = None) -> Dict[str, float | int | List[int] | List[float] | pd.Series | None]:
     """
-    计算 VCP 指标是否成立，并输出进度分值。
-    
-    VCP 完整逻辑流程：
-    1. 验证 Stage 2 上升趋势（价格>MA50/150/200, MA50>150>200）
-    2. 识别局部高低点的收缩次数与深度
-    3. 检查成交量枯竭（短期均线<长期均线）
-    4. 综合判定：满足所有条件则为 VCP 成立
+    计算 VCP 相关技术指标特征（不做条件判定）。
+
+    返回特征包含：
+    - 均线数值与斜率
+    - 52周高低点
+    - 局部高低点索引
+    - 收缩次数与幅度
+    - 成交量均线
+    - 形态持续周数
     """
 
     if params is None:
@@ -106,14 +108,28 @@ def evaluate_vcp(df: pd.DataFrame, params: VCPParams | None = None) -> Dict[str,
 
     # ========== 数据充分性检查 ==========
     # 需要足够的历史数据用于均线计算和极值点识别
-    if len(df) < max(params.ma_200_period + params.ma_trend_period, params.local_extrema_order * 2 + 1):
+    min_required = max(params.ma_200_period + params.ma_trend_period, params.local_extrema_order * 2 + 1)
+    if len(df) < min_required:
         return {
-            "stage2_pass": False,
-            "is_vcp": False,
-            "progress": 0.0,
+            "close_last": None,
+            "high_last": None,
+            "low_last": None,
+            "ma_50": None,
+            "ma_150": None,
+            "ma_200": None,
+            "ma_200_slope": None,
+            "week_52_low": None,
+            "week_52_high": None,
+            "local_high": [],
+            "local_low": [],
+            "contraction": [],
             "num_contractions": 0,
-            "max_contraction": 0.0,
-            "min_contraction": 0.0,
+            "max_contraction": None,
+            "min_contraction": None,
+            "weeks_of_contraction": 0.0,
+            "vol_ma_short": None,
+            "vol_ma_long": None,
+            "lookback": 0,
         }
 
     # ========== 回溯周期数据提取 ==========
@@ -147,25 +163,6 @@ def evaluate_vcp(df: pd.DataFrame, params: VCPParams | None = None) -> Dict[str,
     # 正数表示长期均线向上，是 Stage 2 上升趋势的判断依据
     ma_200_slope = ma_200.iloc[-1] - ma_200.iloc[-params.ma_trend_period]
 
-    # ========== Stage 2 上升趋势模板判定 ==========
-    # Stage 2 标准（William O'Neil 的教学标准）：
-    # 1. 价格 > MA50：短期在上升
-    # 2. 价格 > MA150：中期在上升
-    # 3. 价格 > MA200：长期在上升
-    # 4. MA50 > MA150 > MA200：均线排列正确（黄金交叉）
-    # 5. MA200斜率>0：长期均线向上倾斜
-    # 6. 价格 > 52周低点×1.3：价格已从低点反弹至少30%
-    # 7. 价格 > 52周高点×0.75：价格在 Stage 2 范围内（非极端高位）
-    stage2 = (
-        close_tail.iloc[-1] > ma_50.iloc[-1]  # 条件1：当前收盘 > 50日均线
-        and close_tail.iloc[-1] > ma_150.iloc[-1]  # 条件2：当前收盘 > 150日均线
-        and close_tail.iloc[-1] > ma_200.iloc[-1]  # 条件3：当前收盘 > 200日均线
-        and ma_50.iloc[-1] > ma_150.iloc[-1] > ma_200.iloc[-1]  # 条件4：均线排列（50>150>200）
-        and ma_200_slope > 0  # 条件5：MA200向上倾斜
-        and close_tail.iloc[-1] > week_52_low.iloc[-1] * 1.3  # 条件6：价格已从低点反弹≥30%
-        and close_tail.iloc[-1] > week_52_high.iloc[-1] * 0.75  # 条件7：价格未在极端高位
-    )
-
     # ========== 提取局部极值点 ==========
     # 将数据转为 numpy 数组便于处理
     highs = high_tail.to_numpy(dtype=float)
@@ -184,8 +181,6 @@ def evaluate_vcp(df: pd.DataFrame, params: VCPParams | None = None) -> Dict[str,
     # 按时间从旧到新，收缩幅度应该逐次递减（即收缩深度越来越小）
     contraction = _contractions(highs, lows, local_high, local_low) if len(local_high) >= 2 and len(local_low) >= 2 else []
     
-    # num_c：有效的收缩次数（满足逐减条件）
-    # 从第一个收缩开始，只要收缩幅度逐次变小就计数，第一次增大即停止
     num_c = _num_contractions(contraction) if contraction else 0
 
     # ========== 提取收缩深度数据 ==========
@@ -195,58 +190,43 @@ def evaluate_vcp(df: pd.DataFrame, params: VCPParams | None = None) -> Dict[str,
     # 最小收缩幅度：第一个收缩的幅度（按逐减顺序，第一个收缩最大）
     min_c = contraction[0] if num_c >= 1 else 0.0
 
-    # ========== 收缩条件检查 ==========
-    # 条件1：收缩次数在范围内（通常 2-4 次）
-    contraction_count_ok = params.min_contractions <= num_c <= params.max_contractions
-    
-    # 条件2：最小收缩幅度 ≤ 阈值（最小收缩不能过深，否则不是真正的收缩）
-    max_depth_ok = max_c <= params.max_contraction_depth
-    
-    # 条件3：最大收缩幅度 ≤ 阈值（避免波段过大导致的虚假收缩）
-    min_depth_ok = min_c <= params.min_contraction_depth
-
-    # ========== 时间跨度检查 ==========
-    # 计算最后一次有效收缩从开始到现在的周数
-    # (lookback - 最后一个局部高点的索引) / 5 ≈ 周数（5个交易日=1周）
-    weeks_ok = False
     if contraction and num_c >= 1 and len(local_high) >= num_c:
         weeks = (lookback - local_high[::-1][num_c - 1]) / 5
-        # 至少需要 min_weeks 周（通常2周）才能算有效的 VCP 形态
-        weeks_ok = weeks >= params.min_weeks
+        weeks_of_contraction = weeks
+    else:
+        weeks_of_contraction = 0.0
 
-    # ========== 成交量枯竭检查 ==========
     # 短期成交量均线（5日）
     vol_ma_short = volume_tail.rolling(window=params.vol_short_period, min_periods=params.vol_short_period).mean()
     
     # 长期成交量均线（30日）
     vol_ma_long = volume_tail.rolling(window=params.vol_long_period, min_periods=params.vol_long_period).mean()
     
-    # 成交量枯竭信号：短期成交量均线 < 长期成交量均线
-    # 表示最近的交易活跃度下降，为即将突破做准备
-    volume_dry_ok = vol_ma_short.iloc[-1] < vol_ma_long.iloc[-1]
-
-    # ========== 综合判定所有条件 ==========
-    conditions = {
-        "stage2": stage2,  # Stage 2 趋势是否成立
-        "contraction_count": contraction_count_ok,  # 收缩次数是否在范围内
-        "max_depth": max_depth_ok,  # 最小收缩深度是否合理
-        "min_depth": min_depth_ok,  # 最大收缩深度是否合理
-        "weeks": weeks_ok,  # 时间跨度是否足够
-        "volume_dry": volume_dry_ok,  # 成交量是否枯竭
-    }
-    
-    # 进度分值：满足的条件数 / 总条件数（0-1）
-    # 用于评估形态成熟度，即使不是完美的 VCP，也能看到接近程度
-    progress = sum(1.0 for ok in conditions.values() if ok) / len(conditions)
-    
-    # VCP 完全成立：所有条件都满足
-    is_vcp = all(conditions.values())
-
     return {
-        "stage2_pass": stage2,
-        "is_vcp": is_vcp,
-        "progress": progress,
+        "close_last": close_tail.iloc[-1],
+        "high_last": high_tail.iloc[-1],
+        "low_last": low_tail.iloc[-1],
+        "ma_50": ma_50.iloc[-1],
+        "ma_150": ma_150.iloc[-1],
+        "ma_200": ma_200.iloc[-1],
+        "ma_200_slope": ma_200_slope,
+        "week_52_low": week_52_low.iloc[-1],
+        "week_52_high": week_52_high.iloc[-1],
+        "local_high": local_high.tolist(),
+        "local_low": local_low.tolist(),
+        "contraction": contraction,
         "num_contractions": num_c,
         "max_contraction": max_c,
         "min_contraction": min_c,
+        "weeks_of_contraction": weeks_of_contraction,
+        "vol_ma_short": vol_ma_short.iloc[-1],
+        "vol_ma_long": vol_ma_long.iloc[-1],
+        "lookback": lookback,
     }
+
+
+def evaluate_vcp(df: pd.DataFrame, params: VCPParams | None = None) -> Dict[str, float | int | List[int] | List[float] | pd.Series | None]:
+    """
+    兼容接口：返回 VCP 技术指标特征，不做条件判定。
+    """
+    return compute_vcp_features(df, params)

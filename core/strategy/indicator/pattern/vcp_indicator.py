@@ -16,7 +16,7 @@ import numpy as np
 import backtrader as bt
 import pandas as pd
 
-from core.analysis.indicators.vcp import VCPParams, evaluate_vcp
+from core.analysis.indicators.vcp import VCPParams, compute_vcp_features
 from core.strategy.indicator.common import SignalRecordManager
 
 
@@ -126,6 +126,8 @@ class VCPIndicator(bt.Indicator):
             vol_long_period=self.p.vol_long_period,
         )
         
+        # ========== 调用指标特征计算函数 ==========
+        # 返回值包含均线、收缩、成交量等特征（不做条件判定）
         # ========== 调用核心 VCP 计算函数 ==========
         # 返回值包含 6 个关键指标：
         # - stage2_pass: 是否满足 Stage 2 趋势
@@ -134,12 +136,12 @@ class VCPIndicator(bt.Indicator):
         # - num_contractions: 有效收缩次数
         # - max_contraction: 最小收缩幅度
         # - min_contraction: 最大收缩幅度
-        
+              
         # 防护：如果 DataFrame 为空，返回无信号
         if df.empty:
             return
             
-        vcp_result = evaluate_vcp(df, params)
+        vcp_result = compute_vcp_features(df, params)
 
         # 调试输出（仅第一次）
         if self.p.debug_once and not self._debug_printed:
@@ -147,23 +149,75 @@ class VCPIndicator(bt.Indicator):
             self._debug_printed = True
 
         # ========== 信号过滤阶段 1：Stage 2 检查 ==========
+        close_last = vcp_result.get("close_last")
+        ma_50 = vcp_result.get("ma_50")
+        ma_150 = vcp_result.get("ma_150")
+        ma_200 = vcp_result.get("ma_200")
+        ma_200_slope = vcp_result.get("ma_200_slope")
+        week_52_low = vcp_result.get("week_52_low")
+        week_52_high = vcp_result.get("week_52_high")
+
+        stage2_pass = (
+            close_last is not None
+            and ma_50 is not None
+            and ma_150 is not None
+            and ma_200 is not None
+            and week_52_low is not None
+            and week_52_high is not None
+            and close_last > ma_150
+            and close_last > ma_200
+            and close_last > ma_50
+            and ma_50 > ma_150 > ma_200
+            and ma_200_slope is not None
+            and ma_200_slope > 0
+            and close_last > week_52_low * 1.3
+            and close_last > week_52_high * 0.75
+        )
+
         # 输出 Stage 2 通过状态到指标线
-        self.lines.stage2_pass[0] = 1 if vcp_result["stage2_pass"] else 0
-        
+        self.lines.stage2_pass[0] = 1 if stage2_pass else 0
+
         # 如果未通过 Stage 2 趋势，则无需继续分析
-        if not vcp_result["stage2_pass"]:
+        if not stage2_pass:
             return
 
-        # ========== 信号过滤阶段 2：进度阈值检查 ==========
+        # ========== 信号过滤阶段 2：VCP 条件检查 ==========
+        num_c = vcp_result.get("num_contractions", 0)
+        max_c = vcp_result.get("max_contraction")
+        min_c = vcp_result.get("min_contraction")
+        weeks = vcp_result.get("weeks_of_contraction", 0.0)
+        vol_ma_short = vcp_result.get("vol_ma_short")
+        vol_ma_long = vcp_result.get("vol_ma_long")
+
+        contraction_count_ok = self.p.min_contractions <= num_c <= self.p.max_contractions
+        max_depth_ok = max_c is not None and max_c <= self.p.max_contraction_depth
+        min_depth_ok = min_c is not None and min_c <= self.p.min_contraction_depth
+        weeks_ok = weeks >= self.p.min_weeks
+        volume_dry_ok = (
+            vol_ma_short is not None
+            and vol_ma_long is not None
+            and vol_ma_short < vol_ma_long
+        )
+
+        conditions = {
+            "stage2": stage2_pass,
+            "contraction_count": contraction_count_ok,
+            "max_depth": max_depth_ok,
+            "min_depth": min_depth_ok,
+            "weeks": weeks_ok,
+            "volume_dry": volume_dry_ok,
+        }
+        progress = sum(1.0 for ok in conditions.values() if ok) / len(conditions)
+
         # progress_threshold 用于控制形态成熟度要求
-        # - 1.0：要求完全满足所有条件（是_vcp=True）
+        # - 1.0：要求完全满足所有条件
         # - <1.0：允许部分条件未满足（接近 VCP 即可触发）
-        if vcp_result["progress"] < self.p.progress_threshold:
+        if progress < self.p.progress_threshold:
             return
 
         # ========== 信号过滤阶段 3：VCP 完全确认 ==========
         # 当 progress_threshold=1.0 时，只有完全确立的 VCP 才输出信号
-        if not vcp_result["is_vcp"] and self.p.progress_threshold >= 1.0:
+        if not all(conditions.values()) and self.p.progress_threshold >= 1.0:
             return
 
         # ========== VCP 买入信号输出 ==========
@@ -171,9 +225,9 @@ class VCPIndicator(bt.Indicator):
         self.lines.vcp_signal[0] = self.data.close[0]
         
         # 输出收缩统计数据到指标线
-        self.lines.num_contractions[0] = vcp_result["num_contractions"]
-        self.lines.max_contraction[0] = vcp_result["max_contraction"]
-        self.lines.min_contraction[0] = vcp_result["min_contraction"]
+        self.lines.num_contractions[0] = num_c
+        self.lines.max_contraction[0] = max_c if max_c is not None else np.nan
+        self.lines.min_contraction[0] = min_c if min_c is not None else np.nan
 
         # 记录买入信号事件（用于后续回测或交易决策）
         self.signal_record_manager.add_signal_record(

@@ -90,6 +90,24 @@ SIGNAL_STYLE_CONFIG = [
         "text_color": "#f97316",
         "y_offset": 1.08,
     },
+    {
+        "signal_type": "vcp_plus_buy",
+        "name": "VCPPlus 买入信号",
+        "text": "VCP+",
+        "symbol": "diamond",
+        "color": "#0f766e",
+        "text_color": "#0f766e",
+        "y_offset": 0.93,
+    },
+    {
+        "signal_type": "vcp_plus_sell",
+        "name": "VCPPlus 卖出信号",
+        "text": "VCP+空",
+        "symbol": "triangle-down",
+        "color": "#14b8a6",
+        "text_color": "#14b8a6",
+        "y_offset": 1.08,
+    },
 ]
 
 FONT_FAMILY = "IBM Plex Sans, Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
